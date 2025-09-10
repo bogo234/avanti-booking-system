@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { subscribeToBooking } from '../../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import LiveTrackingMap from '../components/LiveTrackingMap';
 import '../styles/booking-system.css';
 
-export default function TrackingPage() {
+function TrackingPageContent() {
   const [booking, setBooking] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -447,5 +447,35 @@ export default function TrackingPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function TrackingPage() {
+  return (
+    <Suspense fallback={
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+        color: 'white'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            border: '3px solid rgba(79, 195, 247, 0.3)',
+            borderTop: '3px solid #4fc3f7',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 1rem'
+          }}></div>
+          <p>Laddar spårning...</p>
+        </div>
+      </div>
+    }>
+      <TrackingPageContent />
+    </Suspense>
   );
 }

@@ -133,12 +133,12 @@ export default function Kakor() {
               borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
             }}
             onMouseEnter={(e) => {
-              e.target.style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
-              e.target.style.color = 'rgba(255, 255, 255, 1)';
+              (e.target as HTMLElement).style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
+              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
             }}
             onMouseLeave={(e) => {
-              e.target.style.backgroundColor = 'transparent';
-              e.target.style.color = 'rgba(255, 255, 255, 0.9)';
+              (e.target as HTMLElement).style.backgroundColor = 'transparent';
+              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.9)';
             }}
             >
               Tjänster
@@ -155,12 +155,12 @@ export default function Kakor() {
               borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
             }}
             onMouseEnter={(e) => {
-              e.target.style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
-              e.target.style.color = 'rgba(255, 255, 255, 1)';
+              (e.target as HTMLElement).style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
+              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
             }}
             onMouseLeave={(e) => {
-              e.target.style.backgroundColor = 'transparent';
-              e.target.style.color = 'rgba(255, 255, 255, 0.9)';
+              (e.target as HTMLElement).style.backgroundColor = 'transparent';
+              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.9)';
             }}
             >
               Villkor
@@ -177,12 +177,12 @@ export default function Kakor() {
               borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
             }}
             onMouseEnter={(e) => {
-              e.target.style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
-              e.target.style.color = 'rgba(255, 255, 255, 1)';
+              (e.target as HTMLElement).style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
+              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
             }}
             onMouseLeave={(e) => {
-              e.target.style.backgroundColor = 'transparent';
-              e.target.style.color = 'rgba(255, 255, 255, 0.9)';
+              (e.target as HTMLElement).style.backgroundColor = 'transparent';
+              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.9)';
             }}
             >
               Om oss
@@ -199,12 +199,12 @@ export default function Kakor() {
               borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
             }}
             onMouseEnter={(e) => {
-              e.target.style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
-              e.target.style.color = 'rgba(255, 255, 255, 1)';
+              (e.target as HTMLElement).style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
+              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
             }}
             onMouseLeave={(e) => {
-              e.target.style.backgroundColor = 'transparent';
-              e.target.style.color = 'rgba(255, 255, 255, 0.9)';
+              (e.target as HTMLElement).style.backgroundColor = 'transparent';
+              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.9)';
             }}
             >
               Kontakt
@@ -221,12 +221,12 @@ export default function Kakor() {
               borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
             }}
             onMouseEnter={(e) => {
-              e.target.style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
-              e.target.style.color = 'rgba(255, 255, 255, 1)';
+              (e.target as HTMLElement).style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
+              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
             }}
             onMouseLeave={(e) => {
-              e.target.style.backgroundColor = 'transparent';
-              e.target.style.color = 'rgba(255, 255, 255, 0.9)';
+              (e.target as HTMLElement).style.backgroundColor = 'transparent';
+              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.9)';
             }}
             >
               FAQ
@@ -243,12 +243,12 @@ export default function Kakor() {
               borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
             }}
             onMouseEnter={(e) => {
-              e.target.style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
-              e.target.style.color = 'rgba(255, 255, 255, 1)';
+              (e.target as HTMLElement).style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
+              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
             }}
             onMouseLeave={(e) => {
-              e.target.style.backgroundColor = 'transparent';
-              e.target.style.color = 'rgba(255, 255, 255, 0.9)';
+              (e.target as HTMLElement).style.backgroundColor = 'transparent';
+              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.9)';
             }}
             >
               Integritet
@@ -265,12 +265,12 @@ export default function Kakor() {
               borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
             }}
             onMouseEnter={(e) => {
-              e.target.style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
-              e.target.style.color = 'rgba(255, 255, 255, 1)';
+              (e.target as HTMLElement).style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
+              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
             }}
             onMouseLeave={(e) => {
-              e.target.style.backgroundColor = 'transparent';
-              e.target.style.color = 'rgba(255, 255, 255, 0.9)';
+              (e.target as HTMLElement).style.backgroundColor = 'transparent';
+              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.9)';
             }}
             >
               Kakor
@@ -286,12 +286,12 @@ export default function Kakor() {
               transition: 'all 0.2s ease'
             }}
             onMouseEnter={(e) => {
-              e.target.style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
-              e.target.style.color = 'rgba(255, 255, 255, 1)';
+              (e.target as HTMLElement).style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
+              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
             }}
             onMouseLeave={(e) => {
-              e.target.style.backgroundColor = 'transparent';
-              e.target.style.color = 'rgba(255, 255, 255, 0.9)';
+              (e.target as HTMLElement).style.backgroundColor = 'transparent';
+              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.9)';
             }}
             >
               Villkor

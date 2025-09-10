@@ -88,9 +88,9 @@ export default function DriverDashboard() {
       
       // If completed, make driver available again
       if (status === 'completed') {
-        const booking = bookings.find(b => b.id === bookingId);
+        const booking = allBookings?.find((b: any) => b.id === bookingId);
         if (booking?.driver?.id) {
-          await updateDriver(booking.driver.id, { status: 'available' });
+          await firebaseOperations.update('drivers', booking.driver.id, { status: 'available' });
         }
       }
     } catch (error) {
@@ -122,7 +122,7 @@ export default function DriverDashboard() {
     }
   };
 
-  if (authLoading || loading) {
+  if (authLoading || bookingsLoading || driversLoading || userDataLoading || locationLoading) {
     return (
       <div style={{ 
         minHeight: '100vh', 
@@ -202,7 +202,7 @@ export default function DriverDashboard() {
               minWidth: '200px'
             }}
           >
-            {drivers.map((driver) => (
+            {allDrivers?.map((driver: any) => (
               <option key={driver.id} value={driver.id} style={{ background: '#1e293b' }}>
                 {driver.name} - {driver.car} ({driver.status})
               </option>
@@ -220,13 +220,13 @@ export default function DriverDashboard() {
         }}>
           <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Nya bokningar</h2>
           
-          {bookings.length === 0 ? (
+          {allBookings?.length === 0 ? (
             <p style={{ opacity: 0.7, textAlign: 'center', padding: '2rem' }}>
               Inga nya bokningar just nu
             </p>
           ) : (
             <div style={{ display: 'grid', gap: '1.5rem' }}>
-              {bookings.map((booking) => (
+              {allBookings?.map((booking: any) => (
                 <div 
                   key={booking.id}
                   style={{
@@ -348,7 +348,7 @@ export default function DriverDashboard() {
           <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Aktiva bokningar</h2>
           
           <div style={{ display: 'grid', gap: '1rem' }}>
-            {bookings.filter(b => b.status === 'accepted' || b.status === 'on_way' || b.status === 'arrived').map((booking) => (
+            {allBookings?.filter((b: any) => b.status === 'accepted' || b.status === 'on_way' || b.status === 'arrived').map((booking: any) => (
               <div 
                 key={booking.id}
                 style={{
