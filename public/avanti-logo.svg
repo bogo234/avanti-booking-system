@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 256">
+  <defs>
+    <style>
+      .blue{fill:#4FC3F7}
+    </style>
+  </defs>
+  <g transform="translate(96,48)">
+    <path class="blue" d="M64 128 L96 48 L128 128 L112 128 L96 88 L80 128 Z"/>
+    <text x="160" y="132" font-family="Inter, Helvetica, Arial, sans-serif" font-size="120" fill="#ffffff" letter-spacing="4">Avanti</text>
+  </g>
+</svg>
+

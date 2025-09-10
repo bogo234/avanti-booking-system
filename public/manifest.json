@@ -1,0 +1,33 @@
+{
+  "name": "Avanti - Smidig och pålitlig transport",
+  "short_name": "Avanti",
+  "description": "Boka din resa med Avanti. Välutbildade förare, hög säkerhet och skattade bilar.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "sv",
+  "categories": ["transport", "travel", "business"],
+  "icons": [
+    {
+      "src": "/avanti-logo.png",
+      "sizes": "120x120",
+      "type": "image/jpeg",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/avanti-logo.png",
+      "sizes": "120x120",
+      "type": "image/jpeg",
+      "form_factor": "wide"
+    }
+  ]
+}
+
+
+
+
