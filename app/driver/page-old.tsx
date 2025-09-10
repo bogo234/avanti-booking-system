@@ -76,7 +76,7 @@ export default function DriverDashboard() {
 
   const handleRejectBooking = async (bookingId: string) => {
     try {
-      await updateBooking(bookingId, { status: 'cancelled' });
+      await firebaseOperations.update('bookings', bookingId, { status: 'cancelled' });
     } catch (error) {
       console.error('Error rejecting booking:', error);
     }
@@ -84,7 +84,7 @@ export default function DriverDashboard() {
 
   const handleUpdateBookingStatus = async (bookingId: string, status: string) => {
     try {
-      await updateBooking(bookingId, { status: status as any });
+      await firebaseOperations.update('bookings', bookingId, { status: status as any });
       
       // If completed, make driver available again
       if (status === 'completed') {

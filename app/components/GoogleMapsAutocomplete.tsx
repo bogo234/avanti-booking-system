@@ -20,8 +20,8 @@ export default function GoogleMapsAutocomplete({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isApiAvailable, setIsApiAvailable] = useState(false);
-  const autocompleteService = useRef<google.maps.places.AutocompleteService | null>(null);
-  const placesService = useRef<google.maps.places.PlacesService | null>(null);
+  const autocompleteService = useRef<any>(null);
+  const placesService = useRef<any>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -102,10 +102,10 @@ export default function GoogleMapsAutocomplete({
             types: ['address']
           },
           (predictions, status) => {
-            if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+            if (status === 'OK' && predictions) {
               setSuggestions(predictions);
               setShowSuggestions(true);
-            } else if (status === window.google.maps.places.PlacesServiceStatus.REQUEST_DENIED) {
+            } else if (status === 'REQUEST_DENIED') {
               setApiError('Google Maps API kräver billing aktivering');
               setIsApiAvailable(false);
             } else {
@@ -125,7 +125,7 @@ export default function GoogleMapsAutocomplete({
     }
   };
 
-  const handleSuggestionClick = (prediction: google.maps.places.AutocompletePrediction) => {
+  const handleSuggestionClick = (prediction: any) => {
     if (placesService.current) {
       try {
         placesService.current.getDetails(
@@ -134,7 +134,7 @@ export default function GoogleMapsAutocomplete({
             fields: ['formatted_address', 'geometry', 'name']
           },
           (place, status) => {
-            if (status === window.google.maps.places.PlacesServiceStatus.OK && place) {
+            if (status === 'OK' && place) {
               onChange(place.formatted_address || prediction.description);
               onSelect(place);
               setShowSuggestions(false);
@@ -144,7 +144,7 @@ export default function GoogleMapsAutocomplete({
       } catch (error) {
         console.error('Failed to get place details:', error);
         onChange(prediction.description);
-        onSelect({ formatted_address: prediction.description } as google.maps.places.PlaceResult);
+        onSelect({ formatted_address: prediction.description } as any);
         setShowSuggestions(false);
       }
     }
@@ -162,7 +162,7 @@ export default function GoogleMapsAutocomplete({
 
   const handleManualSubmit = () => {
     if (value.trim()) {
-      const mockPlace: google.maps.places.PlaceResult = {
+      const mockPlace: any = {
         formatted_address: value.trim(),
         name: value.trim()
       };

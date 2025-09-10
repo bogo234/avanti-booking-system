@@ -2,42 +2,38 @@
 
 import { useState, useEffect } from 'react';
 
+interface ServiceHealth {
+  status: string;
+  message: string;
+  error?: string;
+  responseTime?: number;
+  // Firebase specific
+  // Bookings specific
+  recentBookings?: number;
+  totalBookings?: number;
+  // Drivers specific
+  activeDrivers?: number;
+  availableDrivers?: number;
+  busyDrivers?: number;
+  // System specific
+  memory?: {
+    used: number;
+    total: number;
+    external: number;
+  };
+  uptime?: number;
+  nodeVersion?: string;
+  platform?: string;
+}
+
 interface SystemHealth {
   timestamp: string;
   status: 'healthy' | 'degraded' | 'unhealthy';
   services: {
-    firebase?: {
-      status: string;
-      responseTime?: number;
-      message: string;
-      error?: string;
-    };
-    bookings?: {
-      status: string;
-      recentBookings: number;
-      totalBookings: number;
-      message: string;
-      error?: string;
-    };
-    drivers?: {
-      status: string;
-      activeDrivers: number;
-      availableDrivers: number;
-      busyDrivers: number;
-      message: string;
-      error?: string;
-    };
-    system?: {
-      status: string;
-      memory: {
-        used: number;
-        total: number;
-        external: number;
-      };
-      uptime: number;
-      nodeVersion: string;
-      platform: string;
-    };
+    firebase?: ServiceHealth;
+    bookings?: ServiceHealth;
+    drivers?: ServiceHealth;
+    system?: ServiceHealth;
   };
 }
 

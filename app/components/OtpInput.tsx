@@ -35,7 +35,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({ value, onChange, length = 6,
       {Array.from({ length }).map((_, idx) => (
         <input
           key={idx}
-          ref={(el) => (inputsRef.current[idx] = el)}
+          ref={(el) => { inputsRef.current[idx] = el; }}
           inputMode="numeric"
           aria-label={`Siffra ${idx + 1}`}
           className="w-9 h-11 text-center rounded-2xl bg-white/5 text-white ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-blue-500/30"

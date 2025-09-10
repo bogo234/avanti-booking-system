@@ -130,8 +130,11 @@ export interface BookingRequest {
   destination: Address;
   pickupTime: Date;
   serviceTypeId: string;
+  licensePlate?: string;
   customerNotes?: string;
   emergencyContact?: EmergencyContact;
+  termsAccepted?: boolean;
+  privacyAccepted?: boolean;
 }
 
 export interface BookingResponse {

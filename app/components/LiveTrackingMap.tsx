@@ -8,7 +8,7 @@ interface LiveTrackingMapProps {
   destinationLocation: { lat: number; lng: number; address: string };
   driverLocation?: { lat: number; lng: number };
   bookingStatus: string;
-  onMapReady?: (map: google.maps.Map) => void;
+  onMapReady?: (map: any) => void;
 }
 
 export default function LiveTrackingMap({ 
@@ -19,9 +19,9 @@ export default function LiveTrackingMap({
   onMapReady
 }: LiveTrackingMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
-  const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [directionsService, setDirectionsService] = useState<google.maps.DirectionsService | null>(null);
-  const [directionsRenderer, setDirectionsRenderer] = useState<google.maps.DirectionsRenderer | null>(null);
+  const [map, setMap] = useState<any>(null);
+  const [directionsService, setDirectionsService] = useState<any>(null);
+  const [directionsRenderer, setDirectionsRenderer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -39,7 +39,7 @@ export default function LiveTrackingMap({
         const google = await loader.load();
 
         // Create map
-        const mapInstance = new google.maps.Map(mapRef.current, {
+        const mapInstance = new (window as any).google.maps.Map(mapRef.current, {
           center: pickupLocation,
           zoom: 13,
           styles: [
@@ -67,8 +67,8 @@ export default function LiveTrackingMap({
         });
 
         // Initialize directions service and renderer
-        const directionsServiceInstance = new google.maps.DirectionsService();
-        const directionsRendererInstance = new google.maps.DirectionsRenderer({
+        const directionsServiceInstance = new (window as any).google.maps.DirectionsService();
+        const directionsRendererInstance = new (window as any).google.maps.DirectionsRenderer({
           suppressMarkers: true,
           polylineOptions: {
             strokeColor: '#3b82f6',
@@ -102,7 +102,7 @@ export default function LiveTrackingMap({
     if (!map || !directionsService || !directionsRenderer) return;
 
     // Add pickup marker
-    const pickupMarker = new google.maps.Marker({
+    const pickupMarker = new (window as any).google.maps.Marker({
       position: pickupLocation,
       map: map,
       title: 'Upphämtning',
@@ -113,12 +113,12 @@ export default function LiveTrackingMap({
             <text x="16" y="20" text-anchor="middle" fill="white" font-size="12" font-weight="bold">P</text>
           </svg>
         `),
-        scaledSize: new google.maps.Size(32, 32)
+        scaledSize: new (window as any).google.maps.Size(32, 32)
       }
     });
 
     // Add destination marker
-    const destinationMarker = new google.maps.Marker({
+    const destinationMarker = new (window as any).google.maps.Marker({
       position: destinationLocation,
       map: map,
       title: 'Destination',
@@ -129,14 +129,14 @@ export default function LiveTrackingMap({
             <text x="16" y="20" text-anchor="middle" fill="white" font-size="12" font-weight="bold">D</text>
           </svg>
         `),
-        scaledSize: new google.maps.Size(32, 32)
+        scaledSize: new (window as any).google.maps.Size(32, 32)
       }
     });
 
     // Add driver marker if location is available
-    let driverMarker: google.maps.Marker | null = null;
+    let driverMarker: any = null;
     if (driverLocation) {
-      driverMarker = new google.maps.Marker({
+      driverMarker = new (window as any).google.maps.Marker({
         position: driverLocation,
       map: map,
         title: 'Din förare',
@@ -147,27 +147,27 @@ export default function LiveTrackingMap({
               <text x="16" y="20" text-anchor="middle" fill="white" font-size="12" font-weight="bold">🚗</text>
           </svg>
         `),
-          scaledSize: new google.maps.Size(32, 32)
+          scaledSize: new (window as any).google.maps.Size(32, 32)
         }
       });
     }
 
     // Calculate and display route
     const calculateRoute = () => {
-      const request: google.maps.DirectionsRequest = {
+      const request: any = {
         origin: pickupLocation,
         destination: destinationLocation,
-        travelMode: google.maps.TravelMode.DRIVING,
+        travelMode: (window as any).google.maps.TravelMode.DRIVING,
         avoidHighways: false,
         avoidTolls: false
       };
 
       directionsService.route(request, (result, status) => {
-        if (status === google.maps.DirectionsStatus.OK && result) {
+        if (status === 'OK' && result) {
           directionsRenderer.setDirections(result);
           
           // Fit map to show entire route
-          const bounds = new google.maps.LatLngBounds();
+          const bounds = new (window as any).google.maps.LatLngBounds();
           result.routes[0].legs.forEach(leg => {
             bounds.extend(leg.start_location);
             bounds.extend(leg.end_location);
