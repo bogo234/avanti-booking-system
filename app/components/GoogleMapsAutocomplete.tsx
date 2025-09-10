@@ -16,7 +16,7 @@ export default function GoogleMapsAutocomplete({
   onChange, 
   onSelect 
 }: GoogleMapsAutocompleteProps) {
-  const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isApiAvailable, setIsApiAvailable] = useState(false);
