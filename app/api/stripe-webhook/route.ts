@@ -1,13 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
 import { updateDoc, doc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_fallback', {
-  apiVersion: '2025-08-27.basil',
-});
-
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || 'whsec_fallback';
+import { stripe, getWebhookSecret } from '../../../lib/stripe';
+import Stripe from 'stripe';
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,6 +17,7 @@ export async function POST(request: NextRequest) {
     let event: Stripe.Event;
 
     try {
+      const webhookSecret = getWebhookSecret();
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
     } catch (err) {
       console.error('Webhook signature verification failed:', err);

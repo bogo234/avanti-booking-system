@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { stripe } from '../../../lib/stripe';
 import Stripe from 'stripe';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_fallback', {
-  apiVersion: '2025-08-27.basil',
-});
 
 export async function POST(request: NextRequest) {
   try {

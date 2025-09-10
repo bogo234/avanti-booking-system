@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
 import { updateDoc, doc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_fallback', {
-  apiVersion: '2025-08-27.basil',
-});
+import { stripe } from '../../../lib/stripe';
+import Stripe from 'stripe';
 
 export async function POST(request: NextRequest) {
   try {
