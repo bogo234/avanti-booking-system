@@ -5,6 +5,15 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
 import { useFirebaseData, useUserData, firebaseOperations } from '../../hooks/useFirebaseData';
 import { useDriverLocation } from '../../hooks/useDriverLocation';
+import { Booking } from '../types/booking';
+
+// Driver interface
+interface Driver {
+  id: string;
+  name: string;
+  car: string;
+  status: string;
+}
 
 export default function DriverDashboard() {
   const [selectedDriver, setSelectedDriver] = useState<string>('');
@@ -88,7 +97,7 @@ export default function DriverDashboard() {
       
       // If completed, make driver available again
       if (status === 'completed') {
-        const booking = allBookings?.find((b: any) => b.id === bookingId);
+        const booking = allBookings?.find((b: Booking) => b.id === bookingId);
         if (booking?.driver?.id) {
           await firebaseOperations.update('drivers', booking.driver.id, { status: 'available' });
         }
@@ -202,7 +211,7 @@ export default function DriverDashboard() {
               minWidth: '200px'
             }}
           >
-            {allDrivers?.map((driver: any) => (
+            {allDrivers?.map((driver: Driver) => (
               <option key={driver.id} value={driver.id} style={{ background: '#1e293b' }}>
                 {driver.name} - {driver.car} ({driver.status})
               </option>
@@ -226,7 +235,7 @@ export default function DriverDashboard() {
             </p>
           ) : (
             <div style={{ display: 'grid', gap: '1.5rem' }}>
-              {allBookings?.map((booking: any) => (
+              {allBookings?.map((booking: Booking) => (
                 <div 
                   key={booking.id}
                   style={{
@@ -242,7 +251,10 @@ export default function DriverDashboard() {
                         Bokning #{booking.id?.slice(-8)}
                       </h3>
                       <p style={{ opacity: 0.7, fontSize: '0.9rem' }}>
-                        {new Date(booking.createdAt?.toDate?.() || new Date()).toLocaleString('sv-SE')}
+                        {booking.createdAt instanceof Date 
+                          ? booking.createdAt.toLocaleString('sv-SE')
+                          : new Date(booking.createdAt).toLocaleString('sv-SE')
+                        }
                       </p>
                     </div>
                     <div style={{
@@ -265,21 +277,24 @@ export default function DriverDashboard() {
                   <div style={{ display: 'grid', gap: '1rem', marginBottom: '1.5rem' }}>
                     <div>
                       <h4 style={{ fontSize: '1rem', marginBottom: '0.25rem', opacity: 0.8 }}>Upphämtning</h4>
-                      <p style={{ margin: 0 }}>{booking.pickup.address}</p>
+                      <p style={{ margin: 0 }}>{booking.pickupLocation.street}, {booking.pickupLocation.city}</p>
                       <p style={{ opacity: 0.7, fontSize: '0.9rem', margin: '0.25rem 0 0 0' }}>
-                        {new Date(booking.pickup.time).toLocaleString('sv-SE')}
+                        {booking.pickupTime instanceof Date 
+                          ? booking.pickupTime.toLocaleString('sv-SE')
+                          : new Date(booking.pickupTime).toLocaleString('sv-SE')
+                        }
                       </p>
                     </div>
                     
                     <div>
                       <h4 style={{ fontSize: '1rem', marginBottom: '0.25rem', opacity: 0.8 }}>Destination</h4>
-                      <p style={{ margin: 0 }}>{booking.destination.address}</p>
+                      <p style={{ margin: 0 }}>{booking.destination.street}, {booking.destination.city}</p>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
                       <div>
                         <h4 style={{ fontSize: '1rem', marginBottom: '0.25rem', opacity: 0.8 }}>Service</h4>
-                        <p style={{ margin: 0, textTransform: 'capitalize' }}>{booking.service}</p>
+                        <p style={{ margin: 0, textTransform: 'capitalize' }}>Standard transport</p>
                       </div>
                       <div>
                         <h4 style={{ fontSize: '1rem', marginBottom: '0.25rem', opacity: 0.8 }}>Pris</h4>
@@ -287,15 +302,15 @@ export default function DriverDashboard() {
                       </div>
                       <div>
                         <h4 style={{ fontSize: '1rem', marginBottom: '0.25rem', opacity: 0.8 }}>Registreringsnummer</h4>
-                        <p style={{ margin: 0 }}>{booking.licensePlate}</p>
+                        <p style={{ margin: 0 }}>Ej angivet</p>
                       </div>
                     </div>
 
                     <div>
                       <h4 style={{ fontSize: '1rem', marginBottom: '0.25rem', opacity: 0.8 }}>Kund</h4>
-                      <p style={{ margin: 0 }}>{booking.customer.name}</p>
+                      <p style={{ margin: 0 }}>Kund #{booking.customerId.slice(-8)}</p>
                       <p style={{ opacity: 0.7, fontSize: '0.9rem', margin: '0.25rem 0 0 0' }}>
-                        {booking.customer.phone}
+                        Kontakt via system
                       </p>
                     </div>
                   </div>
@@ -348,7 +363,7 @@ export default function DriverDashboard() {
           <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Aktiva bokningar</h2>
           
           <div style={{ display: 'grid', gap: '1rem' }}>
-            {allBookings?.filter((b: any) => b.status === 'accepted' || b.status === 'on_way' || b.status === 'arrived').map((booking: any) => (
+            {allBookings?.filter((b: Booking) => b.status === 'driver_assigned' || b.status === 'driver_en_route' || b.status === 'driver_arrived' || b.status === 'in_progress').map((booking: Booking) => (
               <div 
                 key={booking.id}
                 style={{
@@ -360,7 +375,7 @@ export default function DriverDashboard() {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                   <h3 style={{ fontSize: '1.1rem', margin: 0 }}>
-                    Bokning #{booking.id?.slice(-8)} - {booking.customer.name}
+                    Bokning #{booking.id?.slice(-8)} - Kund #{booking.customerId.slice(-8)}
                   </h3>
                   <div style={{
                     display: 'flex',
@@ -382,18 +397,18 @@ export default function DriverDashboard() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                   <div>
                     <p style={{ margin: '0 0 0.25rem 0', opacity: 0.8 }}>Från:</p>
-                    <p style={{ margin: 0 }}>{booking.pickup.address}</p>
+                    <p style={{ margin: 0 }}>{booking.pickupLocation.street}, {booking.pickupLocation.city}</p>
                   </div>
                   <div>
                     <p style={{ margin: '0 0 0.25rem 0', opacity: 0.8 }}>Till:</p>
-                    <p style={{ margin: 0 }}>{booking.destination.address}</p>
+                    <p style={{ margin: 0 }}>{booking.destination.street}, {booking.destination.city}</p>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  {booking.status === 'accepted' && (
+                  {booking.status === 'driver_assigned' && (
                     <button 
-                      onClick={() => handleUpdateBookingStatus(booking.id!, 'on_way')}
+                      onClick={() => handleUpdateBookingStatus(booking.id!, 'driver_en_route')}
                       style={{
                         background: '#8b5cf6',
                         color: 'white',
@@ -407,9 +422,9 @@ export default function DriverDashboard() {
                       På väg
                     </button>
                   )}
-                  {booking.status === 'on_way' && (
+                  {booking.status === 'driver_en_route' && (
                     <button 
-                      onClick={() => handleUpdateBookingStatus(booking.id!, 'arrived')}
+                      onClick={() => handleUpdateBookingStatus(booking.id!, 'driver_arrived')}
                       style={{
                         background: '#10b981',
                         color: 'white',
@@ -423,7 +438,7 @@ export default function DriverDashboard() {
                       Anlänt
                     </button>
                   )}
-                  {booking.status === 'arrived' && (
+                  {booking.status === 'driver_arrived' && (
                     <button 
                       onClick={() => handleUpdateBookingStatus(booking.id!, 'completed')}
                       style={{
@@ -440,7 +455,7 @@ export default function DriverDashboard() {
                     </button>
                   )}
                   <a 
-                    href={`tel:${booking.customer.phone}`}
+                    href="#"
                     style={{
                       background: '#4fc3f7',
                       color: 'white',

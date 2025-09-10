@@ -6,7 +6,7 @@ interface GoogleMapsAutocompleteProps {
   placeholder: string;
   value: string;
   onChange: (value: string) => void;
-  onSelect: (place: any) => void;
+  onSelect: (place: google.maps.places.PlaceResult) => void;
 }
 
 

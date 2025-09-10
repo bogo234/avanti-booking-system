@@ -15,6 +15,9 @@ function validateEnvironmentVariables() {
     // Stripe
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+    
+    // OpenAI
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
   };
 
   const missingVars = Object.entries(requiredVars)

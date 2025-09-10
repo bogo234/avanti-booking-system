@@ -1,41 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
+import OpenAI from 'openai'
 
-// Simple AI responses - you can replace this with actual AI API calls
-const getAIResponse = (message: string): string => {
-  const lowerMessage = message.toLowerCase()
-  
-  // Swedish responses for common questions
-  if (lowerMessage.includes('hej') || lowerMessage.includes('hallo')) {
-    return 'Hej! Trevligt att träffa dig. Vad kan jag hjälpa dig med idag?'
-  }
-  
-  if (lowerMessage.includes('vad är') || lowerMessage.includes('vad betyder')) {
-    return 'Jag kan hjälpa dig förklara olika begrepp. Vad vill du veta mer om?'
-  }
-  
-  if (lowerMessage.includes('avanti') || lowerMessage.includes('företag')) {
-    return 'Avanti är ett innovativt företag som fokuserar på tekniska lösningar. Vi finns på Exempelgatan 1, 111 22 Stockholm. Du kan nå oss på +46 72 123 45 67 eller hello@avanti-app.se.'
-  }
-  
-  if (lowerMessage.includes('hjälp') || lowerMessage.includes('support')) {
-    return 'Jag är här för att hjälpa! Du kan fråga mig om:\n• Avanti och våra tjänster\n• Teknisk support\n• Kontaktinformation\n• Allmänna frågor\n\nVad behöver du hjälp med?'
-  }
-  
-  if (lowerMessage.includes('tid') || lowerMessage.includes('öppettider')) {
-    return 'Våra öppettider är vardagar 9:00-17:00. För akuta ärenden kan du alltid kontakta oss via email på hello@avanti-app.se.'
-  }
-  
-  if (lowerMessage.includes('kontakt') || lowerMessage.includes('telefon') || lowerMessage.includes('email')) {
-    return 'Du kan kontakta oss på följande sätt:\n📞 Telefon: +46 72 123 45 67\n📧 Email: hello@avanti-app.se\n📍 Adress: Exempelgatan 1, 111 22 Stockholm\n🏢 Org.nr: 5590-0000'
-  }
-  
-  if (lowerMessage.includes('tack') || lowerMessage.includes('thanks')) {
-    return 'Så kul att jag kunde hjälpa! Finns det något annat du undrar över?'
-  }
-  
-  // Default response
-  return `Tack för ditt meddelande: "${message}". Jag förstår att du vill veta mer om detta. Just nu kan jag hjälpa dig med information om Avanti, kontaktuppgifter och allmän support. För mer specifika frågor, kontakta oss gärna direkt på hello@avanti-app.se.`
-}
+// Initialize OpenAI client (only if API key is available)
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+}) : null
+
+// System prompt for the AI assistant
+const SYSTEM_PROMPT = `Du är en hjälpsam AI-assistent för Avanti, ett svenskt transportföretag. 
+
+Företagsinformation:
+- Namn: Avanti
+- Tjänster: Biltransport, personlig transport, logistik
+- Kontakt: hello@avanti-app.se, +46 72 123 45 67
+- Adress: Exempelgatan 1, 111 22 Stockholm
+- Öppettider: Vardagar 9:00-17:00
+
+Du ska:
+1. Svara på svenska
+2. Vara professionell och hjälpsam
+3. Ge korrekt information om Avanti
+4. Hjälpa med bokningar, support och allmänna frågor
+5. Om du inte vet något, hänvisa till kontaktuppgifterna
+
+Svara kortfattat och användbart.`
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,22 +35,37 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    // Check if OpenAI API key is configured
+    if (!openai || !process.env.OPENAI_API_KEY) {
+      return NextResponse.json(
+        { error: 'OpenAI API-nyckel är inte konfigurerad. Kontakta administratören.' },
+        { status: 500 }
+      )
+    }
     
-    // Here you would typically call an AI service like OpenAI or Anthropic
-    // For now, we'll use the simple response function
-    const response = getAIResponse(message)
+    // Call OpenAI API
+    const completion = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: message }
+      ],
+      max_tokens: 500,
+      temperature: 0.7,
+    })
     
-    // Simulate AI thinking time
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    const response = completion.choices[0]?.message?.content || 'Tyvärr kunde jag inte generera ett svar. Försök igen.'
     
     return NextResponse.json({ response })
     
   } catch (error) {
     console.error('AI Assistant API Error:', error)
-    return NextResponse.json(
-      { error: 'Ett fel uppstod när meddelandet bearbetades' },
-      { status: 500 }
-    )
+    
+    // Fallback response if OpenAI fails
+    const fallbackResponse = `Just nu har vi tekniska problem med AI-assistenten. Kontakta oss direkt på hello@avanti-app.se eller +46 72 123 45 67 för hjälp.`
+    
+    return NextResponse.json({ response: fallbackResponse })
   }
 }
 

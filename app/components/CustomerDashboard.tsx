@@ -3,6 +3,18 @@
 import { useState, useEffect } from 'react';
 import { Booking, BookingStatus, User } from '../types/booking';
 import { subscribeToBooking, updateBooking } from '../../lib/firebase';
+import { db } from '../../lib/firebase';
+import { 
+  doc, 
+  getDoc, 
+  collection, 
+  query, 
+  where, 
+  orderBy, 
+  limit, 
+  getDocs,
+  updateDoc 
+} from 'firebase/firestore';
 
 interface CustomerDashboardProps {
   customerId: string;
@@ -14,66 +26,60 @@ export default function CustomerDashboard({ customerId }: CustomerDashboardProps
   const [bookingHistory, setBookingHistory] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Mock data - replace with actual API calls
+  // Load customer data from Firebase
   useEffect(() => {
-    const mockCustomer: User = {
-      id: customerId,
-      email: 'anna.andersson@email.com',
-      phone: '+46 70 987 65 43',
-      firstName: 'Anna',
-      lastName: 'Andersson',
-      dateOfBirth: '1990-05-20',
-      address: {
-        street: 'Vasagatan 45',
-        city: 'Stockholm',
-        postalCode: '111 20',
-        country: 'Sverige'
-      },
-      createdAt: new Date('2023-06-01'),
-      updatedAt: new Date(),
-      isVerified: true,
-      isActive: true
-    };
+    const loadCustomerData = async () => {
+      setIsLoading(true);
+      try {
+        // Load customer data from Firebase
+        const customerDoc = await getDoc(doc(db, 'users', customerId));
+        if (customerDoc.exists()) {
+          const customerData = { id: customerDoc.id, ...customerDoc.data() } as User;
+          setCustomer(customerData);
+        }
 
-    setCustomer(mockCustomer);
+        // Load active booking
+        const bookingsQuery = query(
+          collection(db, 'bookings'),
+          where('customerId', '==', customerId),
+          where('status', 'in', ['pending', 'confirmed', 'driver_assigned', 'in_progress']),
+          orderBy('createdAt', 'desc'),
+          limit(1)
+        );
+        
+        const activeBookingSnapshot = await getDocs(bookingsQuery);
+        if (!activeBookingSnapshot.empty) {
+          const bookingData = { 
+            id: activeBookingSnapshot.docs[0].id, 
+            ...activeBookingSnapshot.docs[0].data() 
+          } as Booking;
+          setActiveBooking(bookingData);
+        }
 
-    // Mock active booking
-    const mockActiveBooking: Booking = {
-      id: 'booking-123',
-      customerId,
-      driverId: 'driver-456',
-      pickupLocation: {
-        street: 'Stureplan 1',
-        city: 'Stockholm',
-        postalCode: '114 35',
-        country: 'Sverige'
-      },
-      destination: {
-        street: 'Vasagatan 45',
-        city: 'Stockholm',
-        postalCode: '111 20',
-        country: 'Sverige'
-      },
-      pickupTime: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes from now
-      estimatedDuration: 25,
-      distance: 8.5,
-      price: 425,
-      status: 'driver_assigned',
-      paymentStatus: 'paid',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      legalCompliance: {
-        termsAccepted: true,
-        privacyPolicyAccepted: true,
-        dataProcessingConsent: true,
-        emergencyContactProvided: true,
-        insuranceAcknowledged: true,
-        cancellationPolicyAcknowledged: true,
-        timestamp: new Date()
+        // Load booking history
+        const historyQuery = query(
+          collection(db, 'bookings'),
+          where('customerId', '==', customerId),
+          where('status', 'in', ['completed', 'cancelled']),
+          orderBy('createdAt', 'desc'),
+          limit(10)
+        );
+        
+        const historySnapshot = await getDocs(historyQuery);
+        const historyData = historySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Booking[];
+        setBookingHistory(historyData);
+
+      } catch (error) {
+        console.error('Error loading customer data:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    setActiveBooking(mockActiveBooking);
+    loadCustomerData();
   }, [customerId]);
 
   const handleCancelBooking = async () => {
