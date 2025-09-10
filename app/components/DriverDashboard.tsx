@@ -2,6 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { Driver, Booking, BookingStatus } from '../types/booking';
+import { db } from '../../lib/firebase';
+import { 
+  doc, 
+  getDoc, 
+  collection, 
+  query, 
+  where, 
+  orderBy, 
+  limit, 
+  getDocs,
+  updateDoc 
+} from 'firebase/firestore';
 
 interface DriverDashboardProps {
   driverId: string;
@@ -14,43 +26,59 @@ export default function DriverDashboard({ driverId }: DriverDashboardProps) {
   const [isOnline, setIsOnline] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Mock data - replace with actual API calls
+  // Load driver data from Firebase
   useEffect(() => {
-    const mockDriver: Driver = {
-      id: driverId,
-      email: 'marcus.andersson@avanti.se',
-      phone: '+46 70 123 45 67',
-      firstName: 'Marcus',
-      lastName: 'Andersson',
-      dateOfBirth: '1985-03-15',
-      address: {
-        street: 'Storgatan 123',
-        city: 'Stockholm',
-        postalCode: '111 22',
-        country: 'Sverige'
-      },
-      createdAt: new Date('2023-01-01'),
-      updatedAt: new Date(),
-      isVerified: true,
-      isActive: true,
-      licenseNumber: 'ABC123456',
-      licenseExpiry: '2025-12-31',
-      vehicleRegistration: 'ABC123',
-      insuranceNumber: 'INS789012',
-      backgroundCheckDate: '2023-01-15',
-      isAvailable: true,
-      currentLocation: { lat: 59.3293, lng: 18.0686 },
-      rating: 4.9,
-      totalRides: 127,
-      documents: {
-        licenseImage: '/documents/license.jpg',
-        insuranceCertificate: '/documents/insurance.pdf',
-        backgroundCheck: '/documents/background.pdf',
-        vehicleInspection: '/documents/inspection.pdf'
+    const loadDriverData = async () => {
+      setIsLoading(true);
+      try {
+        // Load driver data from Firebase
+        const driverDoc = await getDoc(doc(db, 'drivers', driverId));
+        if (driverDoc.exists()) {
+          const driverData = { id: driverDoc.id, ...driverDoc.data() } as Driver;
+          setDriver(driverData);
+        }
+
+        // Load available bookings
+        const bookingsQuery = query(
+          collection(db, 'bookings'),
+          where('status', '==', 'pending'),
+          orderBy('createdAt', 'desc'),
+          limit(10)
+        );
+        
+        const bookingsSnapshot = await getDocs(bookingsQuery);
+        const bookingsData = bookingsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Booking[];
+        setAvailableBookings(bookingsData);
+
+        // Load current booking if driver is assigned
+        const currentBookingQuery = query(
+          collection(db, 'bookings'),
+          where('driverId', '==', driverId),
+          where('status', 'in', ['driver_assigned', 'driver_en_route', 'driver_arrived', 'in_progress']),
+          orderBy('createdAt', 'desc'),
+          limit(1)
+        );
+        
+        const currentBookingSnapshot = await getDocs(currentBookingQuery);
+        if (!currentBookingSnapshot.empty) {
+          const currentBookingData = { 
+            id: currentBookingSnapshot.docs[0].id, 
+            ...currentBookingSnapshot.docs[0].data() 
+          } as Booking;
+          setCurrentBooking(currentBookingData);
+        }
+
+      } catch (error) {
+        console.error('Error loading driver data:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    setDriver(mockDriver);
+    loadDriverData();
   }, [driverId]);
 
   const handleToggleOnline = () => {

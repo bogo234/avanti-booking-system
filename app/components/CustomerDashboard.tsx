@@ -87,8 +87,12 @@ export default function CustomerDashboard({ customerId }: CustomerDashboardProps
     
     setIsLoading(true);
     try {
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Update booking status in Firebase
+      await updateDoc(doc(db, 'bookings', activeBooking.id), {
+        status: 'cancelled',
+        updatedAt: new Date()
+      });
+      
       setActiveBooking({ ...activeBooking, status: 'cancelled' });
       
       // Move to history

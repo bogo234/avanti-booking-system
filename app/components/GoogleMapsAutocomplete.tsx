@@ -162,11 +162,12 @@ export default function GoogleMapsAutocomplete({
 
   const handleManualSubmit = () => {
     if (value.trim()) {
-      const mockPlace: google.maps.places.PlaceResult = {
+      // Create a basic place result for manual input
+      const manualPlace: google.maps.places.PlaceResult = {
         formatted_address: value.trim(),
         name: value.trim()
       };
-      onSelect(mockPlace);
+      onSelect(manualPlace);
     }
   };
 
