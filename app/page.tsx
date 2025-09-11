@@ -63,12 +63,14 @@ export default function Home() {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      height: '100vh',
       backgroundColor: 'black',
       color: 'white',
       fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       position: 'relative',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column'
     }}>
       {/* Background Video - Now covers entire page */}
       <video
@@ -455,12 +457,12 @@ export default function Home() {
       <main style={{ 
         position: 'relative',
         zIndex: 2,
-        minHeight: '100vh',
+        flex: 1,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
-        paddingTop: '80px',
+        paddingTop: '60px',
         paddingBottom: '0',
         paddingLeft: '1.5rem',
         paddingRight: '1.5rem'
@@ -468,16 +470,20 @@ export default function Home() {
         {/* Content Container */}
         <div style={{ 
           width: '100%',
-          maxWidth: '400px',
+          maxWidth: '380px',
           margin: '0 auto',
-          textAlign: 'center'
+          textAlign: 'center',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          height: '100%'
         }}>
           {/* Hero Section */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            marginBottom: '1rem'
+            marginBottom: '0.75rem'
           }}>
             <div style={{ 
               width: '100%',
@@ -526,9 +532,9 @@ export default function Home() {
               <div style={{ 
                 display: 'flex', 
                 flexDirection: 'column', 
-                gap: '1rem',
+                gap: '0.75rem',
                 maxWidth: '320px',
-                margin: '0 auto 1.5rem'
+                margin: '0 auto 1rem'
               }}>
                 <div>
                   <label style={{
@@ -636,13 +642,13 @@ export default function Home() {
 
               {/* Features Section */}
               <div style={{
-                marginBottom: '2rem'
+                marginBottom: '1rem'
               }}>
                 <h2 style={{
-                  fontSize: 'clamp(0.9rem, 3vw, 1rem)',
+                  fontSize: 'clamp(0.85rem, 3vw, 0.95rem)',
                   fontWeight: '400',
                   color: 'white',
-                  marginBottom: '0.75rem',
+                  marginBottom: '0.5rem',
                   letterSpacing: '0.025em'
                 }}>
                   Pålitliga förare
@@ -650,7 +656,7 @@ export default function Home() {
                 <div style={{
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '0.75rem',
+                  gap: '0.5rem',
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}>
@@ -732,7 +738,7 @@ export default function Home() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '0.5rem',
-                marginTop: '1.5rem'
+                marginTop: '0.75rem'
               }}>
                 <span style={{
                   color: 'rgba(255, 255, 255, 0.7)',
@@ -760,15 +766,15 @@ export default function Home() {
         zIndex: 2,
         backgroundColor: 'rgba(0, 0, 0, 0.9)',
         borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-        padding: '1rem 1.5rem',
-        marginTop: '0'
+        padding: '0.75rem 1.5rem',
+        marginTop: 'auto'
       }}>
         <div style={{
           maxWidth: '72rem',
           margin: '0 auto',
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: '1.5rem'
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '1rem'
         }}>
           {/* Company Info */}
           <div style={{
