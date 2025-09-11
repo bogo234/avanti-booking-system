@@ -68,7 +68,7 @@ export default function Home() {
       color: 'white',
       fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       position: 'relative',
-      overflow: 'hidden',
+      overflow: 'hidden !important',
       display: 'flex',
       flexDirection: 'column'
     }}>
