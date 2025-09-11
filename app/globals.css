@@ -27,6 +27,11 @@
 
 
 
+html, body {
+  overflow: hidden;
+  height: 100%;
+}
+
 body {
   background: var(--avanti-black);
   color: var(--avanti-white);
