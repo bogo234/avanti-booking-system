@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, getDocs, getDoc, onSnapshot, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, OAuthProvider } from 'firebase/auth';
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, OAuthProvider, sendEmailVerification, updateProfile, reload } from 'firebase/auth';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 
 const firebaseConfig = {
@@ -330,6 +330,29 @@ export const signInWithApple = async () => {
     return result.user;
   } catch (error) {
     console.error('Error signing in with Apple:', error);
+    throw error;
+  }
+};
+
+// Email verification functions
+export const sendEmailVerificationToUser = async (user: any) => {
+  try {
+    await sendEmailVerification(user, {
+      url: `${window.location.origin}/auth?verified=true`,
+      handleCodeInApp: true
+    });
+  } catch (error) {
+    console.error('Error sending email verification:', error);
+    throw error;
+  }
+};
+
+export const checkEmailVerificationStatus = async (user: any) => {
+  try {
+    await reload(user);
+    return user.emailVerified;
+  } catch (error) {
+    console.error('Error checking email verification:', error);
     throw error;
   }
 };

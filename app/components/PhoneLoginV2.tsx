@@ -322,14 +322,13 @@ export default function PhoneLoginV2({ onSuccess, className }: PhoneLoginProps) 
             <label className="text-xs text-zinc-400">Mobilnummer</label>
             <div className="relative mt-1">
               {/* Country Code Dropdown */}
-              <div ref={dropdownRef} className="absolute left-3 top-1/2 -translate-y-1/2 z-10">
-                <button
-                  type="button"
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center gap-1 text-zinc-400 hover:text-white transition-colors"
-                  style={{ fontSize: '14px', background: 'transparent', border: 'none', padding: '2px 4px' }}
-                >
-                  <span>{selectedCountry.flag}</span>
+              <div ref={dropdownRef} className="absolute left-3 top-1/2 -translate-y-1/2 z-20">
+                  <button
+                    type="button"
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="flex items-center gap-1 text-zinc-400 hover:text-white transition-colors"
+                    style={{ fontSize: '14px', background: 'transparent', border: 'none', padding: '2px 4px', cursor: 'pointer !important' }}
+                  >
                   <span>{selectedCountry.code}</span>
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className={`transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}>
                     <path d="M7 10l5 5 5-5z"/>
@@ -337,12 +336,13 @@ export default function PhoneLoginV2({ onSuccess, className }: PhoneLoginProps) 
                 </button>
                 
                 {isDropdownOpen && (
-                  <div className="absolute top-full left-0 mt-1 w-36 rounded-lg shadow-2xl overflow-hidden scrollbar-transparent" style={{
-                    background: 'rgba(0, 0, 0, 0.8)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    backdropFilter: 'blur(20px)',
-                    maxHeight: '120px',
-                    overflowY: 'auto'
+                  <div className="absolute bottom-full left-0 mb-1 w-48 rounded-lg shadow-2xl overflow-hidden scrollbar-transparent animate-in fade-in-0 zoom-in-95 duration-200" style={{
+                    background: '#2a2a2a',
+                    border: '1px solid #555555',
+                    height: '100px',
+                    overflowY: 'auto',
+                    boxShadow: '0 20px 60px rgba(0,0,0,0.8)',
+                    zIndex: 1000
                   }}>
                     {COUNTRIES.map((country, index) => (
                       <button
@@ -352,11 +352,20 @@ export default function PhoneLoginV2({ onSuccess, className }: PhoneLoginProps) 
                           setSelectedCountry(country);
                           setIsDropdownOpen(false);
                         }}
-                        className="w-full flex items-center gap-1 px-2 py-1 text-xs text-white transition-colors"
-                        style={{ background: 'transparent' }}
+                        className="w-full flex items-center justify-start gap-2 px-3 py-2 text-xs text-white transition-all duration-200 hover:bg-gray-600 group"
+                        style={{ 
+                          background: '#2a2a2a',
+                          borderBottom: index < COUNTRIES.length - 1 ? '1px solid #444444' : 'none'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.boxShadow = '0 0 10px #ffffff';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.boxShadow = 'none';
+                        }}
                       >
-                        <span>{country.flag}</span>
-                        <span>{country.code}</span>
+                        <span className="font-mono text-white group-hover:text-white transition-colors">{country.code}</span>
+                        <span className="text-white group-hover:text-white transition-colors">{country.name}</span>
                       </button>
                     ))}
                   </div>
@@ -364,9 +373,9 @@ export default function PhoneLoginV2({ onSuccess, className }: PhoneLoginProps) 
               </div>
               
               <input 
-                className="pl-20 rounded-2xl bg-white/5 w-full px-3 py-2 text-sm text-white outline-none border-none placeholder:text-zinc-500 focus:bg-white/8"
-                style={{ border: '1px solid rgba(255, 255, 255, 0.2)' }}
-                placeholder="" 
+                className="pl-32 rounded-2xl bg-white/5 w-full px-3 py-2 text-sm text-white outline-none border-none placeholder:text-zinc-500 focus:bg-white/8"
+                style={{ border: '1px solid rgba(255, 255, 255, 0.2)', paddingLeft: '3.5rem' }}
+                placeholder={phone ? '' : '712345678'} 
                 value={phone} 
                 onChange={handlePhoneChange}
                 onKeyPress={(e) => e.key === 'Enter' && !loading && sendCode()}
@@ -390,6 +399,7 @@ export default function PhoneLoginV2({ onSuccess, className }: PhoneLoginProps) 
               color: 'rgba(255,255,255,0.95)',
               boxShadow: '0 4px 15px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.2)',
               transform: 'translateY(0)',
+              pointerEvents: isDropdownOpen ? 'none' : 'auto'
             }}
             onMouseEnter={(e) => {
               if (loading !== 'send' && phone.trim()) {

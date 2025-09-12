@@ -520,6 +520,8 @@ input:disabled {
 /* Elegant gray borders for auth page elements */
 #email,
 #password,
+#name,
+#phone,
 button[data-testid="btn-email"] {
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
   outline: none !important;
@@ -528,6 +530,8 @@ button[data-testid="btn-email"] {
 
 #email:focus,
 #password:focus,
+#name:focus,
+#phone:focus,
 button[data-testid="btn-email"]:focus {
   border: 1px solid rgba(255, 255, 255, 0.4) !important;
   outline: none !important;
@@ -581,8 +585,49 @@ button[aria-label="Visa lösenord"]:hover svg {
   background: transparent !important;
   border: none !important;
   padding: 2px 4px !important;
+  cursor: pointer !important;
 }
 
 .absolute button:hover {
   background: transparent !important;
+  cursor: pointer !important;
+}
+
+/* Premium dropdown animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-in {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.fade-in-0 {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.zoom-in-95 {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.duration-200 {
+  animation-duration: 200ms;
+}
+
+/* Fix dropdown pointer events - only for dropdown content */
+.scrollbar-transparent {
+  pointer-events: auto;
+}
+
+/* Improve scroll behavior */
+.scrollbar-transparent {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
