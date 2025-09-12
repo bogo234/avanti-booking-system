@@ -865,6 +865,8 @@ export default function Home() {
               E‑post: <a href="mailto:hello@avanti-app.se" style={{
                 color: 'rgba(255, 255, 255, 0.8)',
                 textDecoration: 'none',
+                outline: 'none',
+                border: 'none',
                 transition: 'color 0.3s ease'
               }}>hello@avanti-app.se</a>
             </p>

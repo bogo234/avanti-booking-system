@@ -142,7 +142,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="relative" style={{ minHeight: '100vh', overflow: 'hidden' }}>
+    <div className="relative" style={{ minHeight: '100vh', overflow: 'hidden', backgroundColor: 'rgba(255, 255, 255, 0.05)', background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05))' }}>
       {/* Logo only - positioned top left */}
       <div style={{
         position: 'fixed',
@@ -162,14 +162,22 @@ export default function AuthPage() {
         />
       </div>
 
-      {/* Minimal gradient background */}
-      <div className="absolute inset-0 -z-10 pointer-events-none bg-[radial-gradient(circle_at_30%_20%,#0b0b0b,transparent_40%),radial-gradient(circle_at_70%_30%,#101010,transparent_40%),linear-gradient(#000,#0a0a0a)]" />
-      <div className="absolute inset-0 -z-10 pointer-events-none bg-gradient-to-b from-black/70 via-black/50 to-black" />
-      <div className="w-full flex items-center justify-center px-4 py-8" style={{ paddingTop: '80px', zIndex: 10, position: 'relative', overflow: 'hidden' }}>
+      {/* Elegant premium background */}
+      <div className="absolute inset-0 -z-10 pointer-events-none bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.08)_0%,transparent_70%)]" />
+      <div className="w-full h-screen flex items-center justify-center px-4" style={{ zIndex: 10, position: 'relative', overflow: 'hidden', paddingTop: '160px' }}>
         <div className="w-full max-w-[400px]">
-          <div className="rounded-3xl p-4 md:p-6 shadow-2xl bg-white/10 backdrop-blur-xl ring-1 ring-white/20 space-y-3">
+          <div className="rounded-3xl p-6 md:p-8 shadow-2xl bg-white/8 backdrop-blur-xl space-y-4" style={{ 
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)'
+          }}>
             <div className="text-center">
-              <h1 className="text-white/90 text-lg md:text-2xl font-semibold">Välkommen – Logga in för att boka din förare</h1>
+              <h1 className="text-white/95 text-xl md:text-3xl font-semibold mb-2" style={{ 
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.8) 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}>Logga in för att boka din förare</h1>
               {error && (
                 <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
                   <p className="text-red-400 text-sm">{error}</p>
@@ -207,14 +215,21 @@ export default function AuthPage() {
               </AuthButton>
             </div>
             
-            <div className="flex items-center gap-2 my-1">
-              <div className="h-px bg-white/10 flex-1"></div>
-              <span className="text-zinc-400 text-xs">eller</span>
-              <div className="h-px bg-white/10 flex-1"></div>
+            <div className="flex items-center gap-3 my-2">
+              <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent flex-1"></div>
+              <span className="text-white/60 text-xs font-medium px-3 py-1 rounded-full" style={{ 
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)'
+              }}>eller</span>
+              <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent flex-1"></div>
             </div>
             
-            <div className="flex items-center justify-center mb-1">
-              <div className="inline-flex rounded-xl bg-white/5 ring-1 ring-white/10 p-0.5 text-xs">
+            <div className="flex items-center justify-center mb-2">
+              <div className="inline-flex rounded-xl p-1 text-xs" style={{ 
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)'
+              }}>
                 <button 
                   style={{
                     padding: '0.25rem 0.75rem',
@@ -286,7 +301,7 @@ export default function AuthPage() {
                     <input 
                       id="email" 
                       data-testid="input-email" 
-                      className="pl-10 rounded-2xl bg-white/5 ring-1 ring-white/10 w-full px-3 py-2 text-sm text-white outline-none placeholder:text-zinc-500 focus:ring-2 focus:ring-blue-500/30" 
+                      className="pl-10 rounded-2xl bg-white/5 w-full px-3 py-2 text-sm text-white outline-none border-none placeholder:text-zinc-500 focus:bg-white/8" 
                       placeholder="din@mail.se" 
                       type="email" 
                       value={email}
@@ -302,7 +317,7 @@ export default function AuthPage() {
                                           <input 
                         id="password" 
                         data-testid="input-password" 
-                        className="pl-10 pr-10 rounded-2xl bg-white/5 ring-1 ring-white/10 w-full px-3 py-2 text-sm text-white outline-none placeholder:text-zinc-500 focus:ring-2 focus:ring-blue-500/30" 
+                        className="pl-10 pr-10 rounded-2xl bg-white/5 w-full px-3 py-2 text-sm text-white outline-none border-none placeholder:text-zinc-500 focus:bg-white/8" 
                         placeholder="••••••••" 
                         type={showPassword ? 'text' : 'password'} 
                         value={password}
@@ -310,8 +325,44 @@ export default function AuthPage() {
                         required
                         disabled={isLoading}
                       />
-                      <button type="button" aria-label="Visa lösenord" className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-md">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M2.3 1.7L1 3l3.1 3.1C2 7.4.7 9 .7 9s4 7 11.3 7c1.7 0 3.2-.4 4.6-1.1L21 21l1.3-1.3L2.3 1.7z"></path></svg>
+                      <button 
+                        type="button" 
+                        aria-label="Visa lösenord" 
+                        className="absolute right-3 top-1/2 -translate-y-1/2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-md transition-all duration-200 hover:scale-110 active:scale-95" 
+                        style={{ 
+                          color: 'rgba(255, 255, 255, 0.95)',
+                          backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                          border: '1px solid rgba(255, 255, 255, 0.2)',
+                          borderRadius: '0.375rem',
+                          padding: '0.25rem'
+                        }}
+                        onClick={() => {
+                          setShowPassword(!showPassword);
+                        }}
+                      >
+                        <svg 
+                          width="18" 
+                          height="18" 
+                          viewBox="0 0 24 24" 
+                          fill="none" 
+                          stroke="rgba(255, 255, 255, 0.95)" 
+                          strokeWidth="2.5" 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round"
+                          className="transition-all duration-200"
+                        >
+                          {showPassword ? (
+                            <>
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                              <circle cx="12" cy="12" r="3"/>
+                            </>
+                          ) : (
+                            <>
+                              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                              <line x1="1" y1="1" x2="23" y2="23"/>
+                            </>
+                          )}
+                        </svg>
                       </button>
                     </div>
                   
@@ -319,7 +370,28 @@ export default function AuthPage() {
                     data-testid="btn-email" 
                     type="submit"
                     disabled={isLoading || !email || !password}
-                    className="w-full inline-flex items-center justify-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 bg-white/8 text-white/95 ring-1 ring-white/15 border border-white/10 hover:bg-white/12 mt-1"
+                    className="w-full inline-flex items-center justify-center gap-3 rounded-2xl px-6 py-4 text-sm font-semibold transition-all duration-300 focus:outline-none mt-2"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.08) 100%)',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      color: 'rgba(255,255,255,0.95)',
+                      boxShadow: '0 4px 15px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.2)',
+                      transform: 'translateY(0)',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isLoading && email && password) {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.3)';
+                        e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.12) 100%)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isLoading && email && password) {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.2)';
+                        e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.08) 100%)';
+                      }
+                    }}
                   >
                     <span>{isLoading ? 'Loggar in...' : 'Logga in'}</span>
                   </button>
@@ -327,13 +399,15 @@ export default function AuthPage() {
               )}
               
               {activeTab === 'phone' && (
-                <PhoneLoginV2 
-                  onSuccess={() => {
-                    // Efter lyckad telefon-inloggning
-                    router.push('/booking');
-                  }}
-                  className="w-full"
-                />
+                <div className="space-y-3">
+                  <PhoneLoginV2 
+                    onSuccess={() => {
+                      // Efter lyckad telefon-inloggning
+                      router.push('/booking');
+                    }}
+                    className="w-full"
+                  />
+                </div>
               )}
             </div>
             
@@ -345,8 +419,8 @@ export default function AuthPage() {
                 <span>Säker inloggning via Firebase</span>
               </div>
               <div className="flex items-center gap-3 text-white text-[11px]">
-                <a className="hover:text-zinc-300 text-white" href="/villkor?from=login" style={{ color: 'white' }}>Villkor</a>
-                <a className="hover:text-zinc-300 text-white" href="/integritet?from=login" style={{ color: 'white' }}>Integritetspolicy</a>
+                <a className="hover:text-zinc-300 text-white" href="/villkor?from=login" style={{ color: 'white', textDecoration: 'none', outline: 'none', border: 'none' }}>Villkor</a>
+                <a className="hover:text-zinc-300 text-white" href="/integritet?from=login" style={{ color: 'white', textDecoration: 'none', outline: 'none', border: 'none' }}>Integritetspolicy</a>
               </div>
             </div>
           </div>
