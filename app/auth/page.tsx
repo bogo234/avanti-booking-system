@@ -6,7 +6,7 @@ import Image from 'next/image';
 import '../styles/auth.css';
 import AuthButton from '../components/AuthButton';
 import OtpInput from '../components/OtpInput';
-import PhoneLogin from '../components/PhoneLogin';
+import PhoneLoginV2 from '../components/PhoneLoginV2';
 import RequireAuth from '../components/RequireAuth';
 import RoleLinks from '../components/RoleLinks';
 import UserMenu from '../components/UserMenu';
@@ -143,6 +143,25 @@ export default function AuthPage() {
 
   return (
     <div className="relative" style={{ minHeight: '100vh', overflow: 'hidden' }}>
+      {/* Logo only - positioned top left */}
+      <div style={{
+        position: 'fixed',
+        top: '1rem',
+        left: '1.5rem',
+        zIndex: 1000
+      }}>
+        <Image
+          src="/avanti-logo.svg"
+          alt="Avanti"
+          width={120}
+          height={35}
+          priority
+          style={{
+            color: 'transparent'
+          }}
+        />
+      </div>
+
       {/* Minimal gradient background */}
       <div className="absolute inset-0 -z-10 pointer-events-none bg-[radial-gradient(circle_at_30%_20%,#0b0b0b,transparent_40%),radial-gradient(circle_at_70%_30%,#101010,transparent_40%),linear-gradient(#000,#0a0a0a)]" />
       <div className="absolute inset-0 -z-10 pointer-events-none bg-gradient-to-b from-black/70 via-black/50 to-black" />
@@ -308,7 +327,7 @@ export default function AuthPage() {
               )}
               
               {activeTab === 'phone' && (
-                <PhoneLogin 
+                <PhoneLoginV2 
                   onSuccess={() => {
                     // Efter lyckad telefon-inloggning
                     router.push('/booking');
