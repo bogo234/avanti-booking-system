@@ -516,3 +516,73 @@ input:disabled {
   text-align: center;
   margin-top: 0.5rem;
 }
+
+/* Elegant gray borders for auth page elements */
+#email,
+#password,
+button[data-testid="btn-email"] {
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+#email:focus,
+#password:focus,
+button[data-testid="btn-email"]:focus {
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Make login button smaller */
+button[data-testid="btn-email"] {
+  padding: 0.5rem 1rem !important;
+  font-size: 0.875rem !important;
+}
+
+/* Fix password visibility icon color - force override */
+button[aria-label="Visa lösenord"] {
+  color: #9ca3af !important;
+}
+
+button[aria-label="Visa lösenord"] svg {
+  fill: #9ca3af !important;
+}
+
+button[aria-label="Visa lösenord"]:hover {
+  color: #d1d5db !important;
+}
+
+button[aria-label="Visa lösenord"]:hover svg {
+  fill: #d1d5db !important;
+}
+
+/* Hide scrollbar completely for dropdown */
+.scrollbar-transparent::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-transparent {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Remove all white backgrounds from dropdown items */
+.scrollbar-transparent button {
+  background: transparent !important;
+}
+
+.scrollbar-transparent button:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Style dropdown button to blend with input field */
+.absolute button {
+  background: transparent !important;
+  border: none !important;
+  padding: 2px 4px !important;
+}
+
+.absolute button:hover {
+  background: transparent !important;
+}
