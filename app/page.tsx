@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { Inter } from 'next/font/google';
 import GooglePlacesAutocomplete from './components/GooglePlacesAutocomplete';
+import { useAuth } from './contexts/AuthContext';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -13,6 +14,7 @@ export default function Home() {
   const [destination, setDestination] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const { user, logout } = useAuth();
 
   const handleBooking = () => {
     // Skicka adressdata via URL parameters
@@ -436,7 +438,8 @@ export default function Home() {
               fontSize: '0.8rem',
               fontWeight: '300',
               letterSpacing: '0.5px',
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s ease',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
             }}
             onMouseEnter={(e) => {
               (e.target as HTMLElement).style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
@@ -449,6 +452,37 @@ export default function Home() {
             >
               Villkor
             </Link>
+            {user && (
+              <button
+                onClick={logout}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  color: 'rgba(255, 255, 255, 0.9)',
+                  fontSize: '0.8rem',
+                  fontWeight: '300',
+                  letterSpacing: '0.5px',
+                  transition: 'all 0.2s ease',
+                  background: 'none',
+                  border: 'none',
+                  textAlign: 'left',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => {
+                  const target = e.target as HTMLButtonElement;
+                  target.style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
+                  target.style.color = 'rgba(255, 255, 255, 1)';
+                }}
+                onMouseLeave={(e) => {
+                  const target = e.target as HTMLButtonElement;
+                  target.style.backgroundColor = 'transparent';
+                  target.style.color = 'rgba(255, 255, 255, 0.9)';
+                }}
+              >
+                Logga ut
+              </button>
+            )}
           </div>
         </div>
       </header>

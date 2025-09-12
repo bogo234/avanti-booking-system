@@ -24,7 +24,7 @@ export default function AuthPage() {
   const [error, setError] = useState('');
   
   const router = useRouter();
-  const { user, userRole, signIn, signUp, signInWithGoogle, signInWithApple } = useAuth();
+  const { user, userRole, signIn, signUp, signInWithGoogle, signInWithApple, logout } = useAuth();
 
   // Redirect if already logged in
   useEffect(() => {
