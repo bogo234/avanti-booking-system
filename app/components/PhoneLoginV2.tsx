@@ -337,13 +337,13 @@ export default function PhoneLoginV2({ onSuccess, className }: PhoneLoginProps) 
                 </button>
                 
                 {isDropdownOpen && (
-                  <div className="absolute top-full left-0 mt-1 w-36 rounded-lg shadow-2xl overflow-hidden" style={{
+                  <div className="absolute top-full left-0 mt-1 w-36 rounded-lg shadow-2xl overflow-hidden scrollbar-transparent" style={{
                     background: 'rgba(0, 0, 0, 0.8)',
                     border: '1px solid rgba(255,255,255,0.1)',
                     backdropFilter: 'blur(20px)',
                     maxHeight: '120px',
                     overflowY: 'auto'
-                  }} className="scrollbar-transparent">
+                  }}>
                     {COUNTRIES.map((country, index) => (
                       <button
                         key={index}
