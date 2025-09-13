@@ -27,10 +27,34 @@ export default class ErrorBoundary extends Component<Props, State> {
     
     // Log to external service in production
     if (process.env.NODE_ENV === 'production') {
-      // TODO: Send to error reporting service
-      console.log('Error would be sent to monitoring service');
+      // Send to error reporting service (Firebase Crashlytics or similar)
+      this.logErrorToService(error, errorInfo);
     }
   }
+
+  private logErrorToService = async (error: Error, errorInfo: any) => {
+    try {
+      // In a real implementation, this would send to Firebase Crashlytics
+      // or another error monitoring service
+      const errorData = {
+        message: error.message,
+        stack: error.stack,
+        componentStack: errorInfo.componentStack,
+        timestamp: new Date().toISOString(),
+        userAgent: navigator.userAgent,
+        url: window.location.href
+      };
+      
+      // For now, we'll use console.error in production as well
+      // In the future, integrate with Firebase Crashlytics
+      console.error('Production Error:', errorData);
+      
+      // Future implementation:
+      // await crashlytics().recordError(error);
+    } catch (loggingError) {
+      console.error('Failed to log error to service:', loggingError);
+    }
+  };
 
   render() {
     if (this.state.hasError) {

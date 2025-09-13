@@ -37,16 +37,26 @@ export default function FAQ() {
       }}>
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <Image
-            src="/avanti-logo.svg"
-            alt="Avanti"
-            width={120}
-            height={35}
-            priority
-            style={{
-              color: 'transparent'
-            }}
-          />
+          <Link href="/" style={{ textDecoration: 'none' }}>
+            <Image
+              src="/avanti-logo.svg"
+              alt="Avanti"
+              width={120}
+              height={35}
+              priority
+              style={{
+                color: 'transparent',
+                cursor: 'pointer',
+                transition: 'opacity 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                (e.target as HTMLElement).style.opacity = '0.8';
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLElement).style.opacity = '1';
+              }}
+            />
+          </Link>
         </div>
 
         {/* Hamburger Menu */}
@@ -121,6 +131,29 @@ export default function FAQ() {
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
             zIndex: 1001
           }}>
+            <Link href="/" style={{
+              display: 'block',
+              padding: '0.75rem 1rem',
+              color: 'rgba(255, 255, 255, 0.9)',
+              textDecoration: 'none',
+              fontSize: '0.8rem',
+              fontWeight: '300',
+              letterSpacing: '0.5px',
+              transition: 'all 0.2s ease',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
+            }}
+            onClick={() => setIsMenuOpen(false)}
+            onMouseEnter={(e) => {
+              (e.target as HTMLElement).style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
+              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
+            }}
+            onMouseLeave={(e) => {
+              (e.target as HTMLElement).style.backgroundColor = 'transparent';
+              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.9)';
+            }}
+            >
+              Hem
+            </Link>
             <Link href="/tjanster" style={{
               display: 'block',
               padding: '0.75rem 1rem',
@@ -132,6 +165,7 @@ export default function FAQ() {
               transition: 'all 0.2s ease',
               borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
             }}
+            onClick={() => setIsMenuOpen(false)}
             onMouseEnter={(e) => {
               (e.target as HTMLElement).style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
               (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
@@ -154,6 +188,7 @@ export default function FAQ() {
               transition: 'all 0.2s ease',
               borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
             }}
+            onClick={() => setIsMenuOpen(false)}
             onMouseEnter={(e) => {
               (e.target as HTMLElement).style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
               (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
@@ -176,6 +211,7 @@ export default function FAQ() {
               transition: 'all 0.2s ease',
               borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
             }}
+            onClick={() => setIsMenuOpen(false)}
             onMouseEnter={(e) => {
               (e.target as HTMLElement).style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
               (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';

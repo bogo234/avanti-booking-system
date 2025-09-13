@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import GooglePlacesAutocomplete from './GooglePlacesAutocomplete';
 import { BookingRequest, ServiceType, Address } from '../types/booking';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ModernBookingFormProps {
   onBookingSubmit: (booking: BookingRequest) => void;
@@ -10,11 +11,13 @@ interface ModernBookingFormProps {
 }
 
 export default function ModernBookingForm({ onBookingSubmit, isLoading = false }: ModernBookingFormProps) {
+  const { user, userRole } = useAuth();
   const [pickupAddress, setPickupAddress] = useState('');
   const [destinationAddress, setDestinationAddress] = useState('');
   const [pickupDateTime, setPickupDateTime] = useState('');
   const [selectedService, setSelectedService] = useState<string>('');
   const [licensePlate, setLicensePlate] = useState('');
+  const [error, setError] = useState<string>('');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [step, setStep] = useState(1);
@@ -138,12 +141,13 @@ export default function ModernBookingForm({ onBookingSubmit, isLoading = false }
 
     const selectedServiceType = serviceTypes.find(s => s.id === selectedService);
     if (!selectedServiceType) {
-      alert('Välj en service');
+      // Use proper error handling instead of alert
+      setError('Välj en service för att fortsätta');
       return;
     }
 
     const booking: BookingRequest = {
-      customerId: 'temp-customer-id', // This should come from authentication
+      customerId: user?.uid || 'guest-user', // Use authenticated user ID or guest fallback
       pickupLocation: {
         street: pickupAddress,
         city: 'Stockholm',
@@ -393,6 +397,12 @@ export default function ModernBookingForm({ onBookingSubmit, isLoading = false }
               </label>
             </div>
           </div>
+
+          {error && (
+            <div className="error-message">
+              {error}
+            </div>
+          )}
 
           <div className="button-group">
             <button onClick={prevStep} className="modern-button secondary">

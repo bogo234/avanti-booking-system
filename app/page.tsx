@@ -13,8 +13,148 @@ export default function Home() {
   const [pickupLocation, setPickupLocation] = useState('');
   const [destination, setDestination] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [menuItemsVisible, setMenuItemsVisible] = useState<boolean[]>([]);
+  const [menuSectionsVisible, setMenuSectionsVisible] = useState<boolean[]>([]);
   const menuRef = useRef<HTMLDivElement>(null);
-  const { user, logout } = useAuth();
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const { user, userRole, logout } = useAuth();
+
+  // Start video as early as possible
+  useEffect(() => {
+    // Try to start video immediately when component is created
+    const timer = setTimeout(() => {
+      if (videoRef.current) {
+        videoRef.current.play().catch(() => {
+          // Retry if failed
+          setTimeout(() => {
+            if (videoRef.current) {
+              videoRef.current.play().catch(console.log);
+            }
+          }, 100);
+        });
+      }
+    }, 0);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Handle user interaction to enable autoplay
+  useEffect(() => {
+    const handleUserInteraction = () => {
+      if (videoRef.current && videoRef.current.paused) {
+        videoRef.current.play().catch(console.log);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden && videoRef.current && videoRef.current.paused) {
+        videoRef.current.play().catch(console.log);
+      }
+    };
+
+    // Listen for any user interaction
+    const events = ['click', 'touchstart', 'keydown', 'mousemove', 'scroll'];
+    events.forEach(event => {
+      document.addEventListener(event, handleUserInteraction, { once: true });
+    });
+
+    // Listen for page visibility changes
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, handleUserInteraction);
+      });
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
+  // Function to ensure video always plays
+  const ensureVideoPlaying = () => {
+    if (videoRef.current) {
+      const video = videoRef.current;
+      if (video.paused || video.ended) {
+        video.play().catch(error => {
+          console.log('Video play failed:', error);
+          // Retry after a short delay
+          setTimeout(() => {
+            video.play().catch(console.log);
+          }, 100);
+        });
+      }
+    }
+  };
+
+  // Handle video events
+  const handleVideoLoad = () => {
+    ensureVideoPlaying();
+  };
+
+  // Start video immediately when ref is available
+  const handleVideoRef = (video: HTMLVideoElement | null) => {
+    if (video) {
+      videoRef.current = video;
+      // Try to start immediately
+      video.play().catch(() => {
+        // If autoplay fails, try again multiple times
+        setTimeout(() => video.play().catch(console.log), 50);
+        setTimeout(() => video.play().catch(console.log), 200);
+        setTimeout(() => video.play().catch(console.log), 500);
+      });
+    }
+  };
+
+  const handleVideoPause = () => {
+    // Immediately restart if paused
+    setTimeout(ensureVideoPlaying, 50);
+  };
+
+  const handleVideoEnded = () => {
+    // Restart video when it ends
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0;
+      ensureVideoPlaying();
+    }
+  };
+
+  // Effect to ensure video always plays - start immediately
+  useEffect(() => {
+    // Start video immediately when component mounts
+    const startVideo = () => {
+      if (videoRef.current) {
+        videoRef.current.play().catch(() => {
+          // If autoplay fails, try again after a short delay
+          setTimeout(() => {
+            if (videoRef.current) {
+              videoRef.current.play().catch(console.log);
+            }
+          }, 100);
+        });
+      }
+    };
+    
+    // Start immediately
+    startVideo();
+    
+    // Also start when video is ready
+    if (videoRef.current) {
+      videoRef.current.addEventListener('loadeddata', startVideo);
+      videoRef.current.addEventListener('canplay', startVideo);
+    }
+    
+    // Set up interval to check video status every 1 second (more frequent)
+    const videoCheckInterval = setInterval(ensureVideoPlaying, 1000);
+    
+    // Cleanup
+    return () => {
+      clearInterval(videoCheckInterval);
+      if (videoRef.current) {
+        videoRef.current.removeEventListener('loadeddata', startVideo);
+        videoRef.current.removeEventListener('canplay', startVideo);
+      }
+    };
+  }, []);
 
   const handleBooking = () => {
     // Skicka adressdata via URL parameters
@@ -31,15 +171,64 @@ export default function Home() {
   };
 
   const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
+    if (!isMenuOpen) {
+      setIsMenuOpen(true);
+      // Start domino animation for menu sections (fällkniv-effekt)
+      const menuItems = [
+        'hem', 'booking', 'driver', 'customer', 'faq', 
+        'integritet', 'kakor', 'kontakt', 'om-oss', 'tjanster', 'villkor'
+      ];
+      if (!user) menuItems.push('auth'); // Add login button if not logged in
+      if (user && userRole === 'admin') menuItems.push('admin'); // Add admin button if admin
+      if (user) menuItems.push('logout'); // Add logout button if logged in
+      
+      // Initialize all sections as hidden
+      setMenuSectionsVisible(new Array(menuItems.length).fill(false));
+      setMenuItemsVisible(new Array(menuItems.length).fill(false));
+      
+      // Create fällkniv effect - each section appears with domino timing
+      menuItems.forEach((_, index) => {
+        setTimeout(() => {
+          setMenuSectionsVisible(prev => {
+            const newState = [...prev];
+            newState[index] = true;
+            return newState;
+          });
+          
+          // Show the actual menu item with a slight delay after section appears
+          setTimeout(() => {
+            setMenuItemsVisible(prev => {
+              const newState = [...prev];
+              newState[index] = true;
+              return newState;
+            });
+          }, 200); // Original delay after section appears
+        }, index * 80); // Original 80ms delay between each item
+      });
+    } else {
+      // Close menu immediately without animation
+      setIsMenuOpen(false);
+      setMenuItemsVisible([]);
+      setMenuSectionsVisible([]);
+    }
   };
 
   // Click outside to close menu
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false);
-      }
+      // Add a small delay to prevent conflicts with button clicks
+      setTimeout(() => {
+        const target = event.target as Node;
+        const isMenuClick = menuRef.current && menuRef.current.contains(target);
+        const isButtonClick = buttonRef.current && buttonRef.current.contains(target);
+        
+        if (!isMenuClick && !isButtonClick && isMenuOpen) {
+          // Close menu immediately without animation
+          setIsMenuOpen(false);
+          setMenuItemsVisible([]);
+          setMenuSectionsVisible([]);
+        }
+      }, 10);
     };
 
     if (isMenuOpen) {
@@ -64,22 +253,112 @@ export default function Home() {
   };
 
   return (
-    <div style={{
-      height: '100vh',
-      backgroundColor: 'black',
-      color: 'white',
-      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      position: 'relative',
-      overflow: 'hidden !important',
-      display: 'flex',
-      flexDirection: 'column'
-    }}>
+    <>
+      <style jsx global>{`
+        /* Prevent scrolling on the entire page */
+        html, body {
+          overflow: hidden;
+          height: 100%;
+          margin: 0;
+          padding: 0;
+        }
+        
+        /* Custom scrollbar styling for dropdown menu */
+        .dropdown-menu::-webkit-scrollbar {
+          width: 6px;
+        }
+        
+        .dropdown-menu::-webkit-scrollbar-track {
+          background: transparent;
+          border-radius: 3px;
+        }
+        
+        .dropdown-menu::-webkit-scrollbar-thumb {
+          background: rgba(79, 195, 247, 0.3);
+          border-radius: 3px;
+          transition: background 0.3s ease;
+        }
+        
+        .dropdown-menu::-webkit-scrollbar-thumb:hover {
+          background: rgba(79, 195, 247, 0.5);
+        }
+        
+        /* Smooth scrolling */
+        .dropdown-menu {
+          scroll-behavior: smooth;
+        }
+        
+        /* Enhanced domino animation for menu items */
+        .menu-item {
+          opacity: 0;
+          transform: translateX(20px) scale(0.95);
+          transition: all 1.0s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          filter: blur(2px);
+          text-align: left;
+        }
+        
+        .menu-item.visible {
+          opacity: 1;
+          transform: translateX(0) scale(1);
+          filter: blur(0px);
+        }
+        
+        /* Fällkniv effect for menu sections */
+        .menu-section {
+          opacity: 0;
+          transform: translateX(50%) scaleY(0);
+          transform-origin: center center;
+          transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          overflow: hidden;
+        }
+        
+        .menu-section.visible {
+          opacity: 1;
+          transform: translateX(0) scaleY(1);
+        }
+        
+        /* Staggered animation delays for each menu item - 80ms intervals */
+        .menu-item:nth-child(1).visible { animation-delay: 0ms; }
+        .menu-item:nth-child(2).visible { animation-delay: 80ms; }
+        .menu-item:nth-child(3).visible { animation-delay: 160ms; }
+        .menu-item:nth-child(4).visible { animation-delay: 240ms; }
+        .menu-item:nth-child(5).visible { animation-delay: 320ms; }
+        .menu-item:nth-child(6).visible { animation-delay: 400ms; }
+        .menu-item:nth-child(7).visible { animation-delay: 480ms; }
+        .menu-item:nth-child(8).visible { animation-delay: 560ms; }
+        .menu-item:nth-child(9).visible { animation-delay: 640ms; }
+        .menu-item:nth-child(10).visible { animation-delay: 720ms; }
+        .menu-item:nth-child(11).visible { animation-delay: 800ms; }
+        .menu-item:nth-child(12).visible { animation-delay: 880ms; }
+        .menu-item:nth-child(13).visible { animation-delay: 960ms; }
+      `}</style>
+      <div style={{
+        height: '100vh',
+        backgroundColor: 'black',
+        color: 'white',
+        fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        position: 'relative',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
       {/* Background Video - Now covers entire page */}
       <video
+        ref={handleVideoRef}
         autoPlay
         muted
         loop
         playsInline
+        webkit-playsinline="true"
+        preload="metadata"
+        onLoadStart={handleVideoLoad}
+        onLoadedData={handleVideoLoad}
+        onCanPlay={handleVideoLoad}
+        onCanPlayThrough={handleVideoLoad}
+        onPause={handleVideoPause}
+        onEnded={handleVideoEnded}
+        onError={handleVideoLoad}
+        onStalled={handleVideoLoad}
         style={{
           position: 'fixed',
           top: 0,
@@ -124,37 +403,52 @@ export default function Home() {
       }}>
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <Image
-            src="/avanti-logo.svg"
-            alt="Avanti"
-            width={120}
-            height={35}
-            priority
-            style={{
-              color: 'transparent'
-            }}
-          />
+          <Link href="/" style={{ textDecoration: 'none' }}>
+            <Image
+              src="/avanti-logo.svg"
+              alt="Avanti"
+              width={120}
+              height={35}
+              priority
+              style={{
+                color: 'transparent',
+                cursor: 'pointer',
+                transition: 'opacity 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                (e.target as HTMLElement).style.opacity = '0.8';
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLElement).style.opacity = '1';
+              }}
+            />
+          </Link>
         </div>
 
         {/* Hamburger Menu */}
         <div style={{ position: 'relative' }}>
           <button
+            ref={buttonRef}
             onClick={toggleMenu}
             style={{
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              padding: '0.75rem',
+              padding: '1rem',
               display: 'flex',
               flexDirection: 'column',
-              gap: '5px',
-              transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-              borderRadius: '0.375rem',
-              position: 'relative'
+              gap: '4px',
+              transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+              borderRadius: '0.5rem',
+              position: 'relative',
+              width: '44px',
+              height: '44px',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
             onMouseEnter={(e) => {
               const target = e.currentTarget;
-              target.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+              target.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
             }}
             onMouseLeave={(e) => {
               const target = e.currentTarget;
@@ -162,30 +456,30 @@ export default function Home() {
             }}
           >
             <div style={{
-              width: '20px',
-              height: '1.5px',
-              backgroundColor: 'rgba(255, 255, 255, 0.8)',
-              borderRadius: '1px',
-              transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-              transform: isMenuOpen ? 'rotate(45deg) translate(4px, 4px)' : 'none',
+              width: '18px',
+              height: '1px',
+              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+              borderRadius: '0.5px',
+              transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+              transform: isMenuOpen ? 'rotate(45deg) translate(3px, 3px)' : 'none',
               transformOrigin: 'center'
             }} />
             <div style={{
-              width: '20px',
-              height: '1.5px',
-              backgroundColor: 'rgba(255, 255, 255, 0.8)',
-              borderRadius: '1px',
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              width: '18px',
+              height: '1px',
+              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+              borderRadius: '0.5px',
+              transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
               opacity: isMenuOpen ? 0 : 1,
               transform: isMenuOpen ? 'scaleX(0)' : 'scaleX(1)'
             }} />
             <div style={{
-              width: '20px',
-              height: '1.5px',
-              backgroundColor: 'rgba(255, 255, 255, 0.8)',
-              borderRadius: '1px',
-              transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-              transform: isMenuOpen ? 'rotate(-45deg) translate(4px, -4px)' : 'none',
+              width: '18px',
+              height: '1px',
+              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+              borderRadius: '0.5px',
+              transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+              transform: isMenuOpen ? 'rotate(-45deg) translate(3px, -3px)' : 'none',
               transformOrigin: 'center'
             }} />
           </button>
@@ -193,295 +487,476 @@ export default function Home() {
           {/* Dropdown Menu */}
           <div 
             ref={menuRef}
+            className="dropdown-menu"
             style={{
               position: 'absolute',
               top: '100%',
               right: 0,
-              background: 'rgba(0, 0, 0, 0.95)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(79, 195, 247, 0.2)',
-              borderRadius: '0.5rem',
-              padding: '0.5rem 0',
-              minWidth: '160px',
+              background: 'rgba(0, 0, 0, 0.98)',
+              backdropFilter: 'blur(40px)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '0.75rem',
+              padding: '0.75rem 0',
+              minWidth: '200px',
+              textAlign: 'left',
+              maxHeight: '70vh',
+              overflowY: 'auto',
               opacity: isMenuOpen ? 1 : 0,
               visibility: isMenuOpen ? 'visible' : 'hidden',
-              transform: isMenuOpen ? 'translateY(0)' : 'translateY(-10px)',
-              transition: 'all 0.3s ease',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-              zIndex: 1001
+              transform: isMenuOpen ? 'translateY(0) scale(1) rotateX(0deg)' : 'translateY(-12px) scale(0.95) rotateX(-10deg)',
+              transition: 'all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.4), 0 8px 25px rgba(0, 0, 0, 0.2)',
+              zIndex: 1001,
+              marginTop: '0.5rem',
+              scrollbarWidth: 'thin',
+              scrollbarColor: 'rgba(79, 195, 247, 0.3) transparent'
             }}>
-            <Link href="/booking" style={{
-              display: 'block',
-              padding: '0.75rem 1rem',
-              color: 'rgba(255, 255, 255, 0.9)',
-              textDecoration: 'none',
-              fontSize: '0.8rem',
-              fontWeight: '300',
-              letterSpacing: '0.5px',
-              transition: 'all 0.2s ease',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
-            }}
-            onMouseEnter={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
-              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
-            }}
-            onMouseLeave={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = 'transparent';
-              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.9)';
-            }}
-            >
-              Boka resa
-            </Link>
-            <Link href="/driver" style={{
-              display: 'block',
-              padding: '0.75rem 1rem',
-              color: 'rgba(255, 255, 255, 0.9)',
-              textDecoration: 'none',
-              fontSize: '0.8rem',
-              fontWeight: '300',
-              letterSpacing: '0.5px',
-              transition: 'all 0.2s ease',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
-            }}
-            onMouseEnter={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
-              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
-            }}
-            onMouseLeave={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = 'transparent';
-              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.9)';
-            }}
-            >
-              Förare
-            </Link>
-            <Link href="/customer" style={{
-              display: 'block',
-              padding: '0.75rem 1rem',
-              color: 'rgba(255, 255, 255, 0.9)',
-              textDecoration: 'none',
-              fontSize: '0.8rem',
-              fontWeight: '300',
-              letterSpacing: '0.5px',
-              transition: 'all 0.2s ease',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
-            }}
-            onMouseEnter={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
-              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
-            }}
-            onMouseLeave={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = 'transparent';
-              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.9)';
-            }}
-            >
-              Kund
-            </Link>
-            <Link href="/auth" style={{
-              display: 'block',
-              padding: '0.75rem 1rem',
-              color: 'rgba(255, 255, 255, 0.9)',
-              textDecoration: 'none',
-              fontSize: '0.8rem',
-              fontWeight: '300',
-              letterSpacing: '0.5px',
-              transition: 'all 0.2s ease',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
-            }}
-            onMouseEnter={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
-              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
-            }}
-            onMouseLeave={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = 'transparent';
-              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.9)';
-            }}
-            >
-              Logga in
-            </Link>
-            <Link href="/faq" style={{
-              display: 'block',
-              padding: '0.75rem 1rem',
-              color: 'rgba(255, 255, 255, 0.9)',
-              textDecoration: 'none',
-              fontSize: '0.8rem',
-              fontWeight: '300',
-              letterSpacing: '0.5px',
-              transition: 'all 0.2s ease',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
-            }}
-            onMouseEnter={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
-              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
-            }}
-            onMouseLeave={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = 'transparent';
-              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.9)';
-            }}
-            >
-              FAQ
-            </Link>
-            <Link href="/integritet" style={{
-              display: 'block',
-              padding: '0.75rem 1rem',
-              color: 'rgba(255, 255, 255, 0.9)',
-              textDecoration: 'none',
-              fontSize: '0.8rem',
-              fontWeight: '300',
-              letterSpacing: '0.5px',
-              transition: 'all 0.2s ease',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
-            }}
-            onMouseEnter={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
-              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
-            }}
-            onMouseLeave={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = 'transparent';
-              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.9)';
-            }}
-            >
-              Integritet
-            </Link>
-            <Link href="/kakor" style={{
-              display: 'block',
-              padding: '0.75rem 1rem',
-              color: 'rgba(255, 255, 255, 0.9)',
-              textDecoration: 'none',
-              fontSize: '0.8rem',
-              fontWeight: '300',
-              letterSpacing: '0.5px',
-              transition: 'all 0.2s ease',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
-            }}
-            onMouseEnter={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
-              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
-            }}
-            onMouseLeave={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = 'transparent';
-              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.9)';
-            }}
-            >
-              Kakor
-            </Link>
-            <Link href="/kontakt" style={{
-              display: 'block',
-              padding: '0.75rem 1rem',
-              color: 'rgba(255, 255, 255, 0.9)',
-              textDecoration: 'none',
-              fontSize: '0.8rem',
-              fontWeight: '300',
-              letterSpacing: '0.5px',
-              transition: 'all 0.2s ease',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
-            }}
-            onMouseEnter={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
-              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
-            }}
-            onMouseLeave={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = 'transparent';
-              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.9)';
-            }}
-            >
-              Kontakt
-            </Link>
-            <Link href="/om-oss" style={{
-              display: 'block',
-              padding: '0.75rem 1rem',
-              color: 'rgba(255, 255, 255, 0.9)',
-              textDecoration: 'none',
-              fontSize: '0.8rem',
-              fontWeight: '300',
-              letterSpacing: '0.5px',
-              transition: 'all 0.2s ease',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
-            }}
-            onMouseEnter={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
-              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
-            }}
-            onMouseLeave={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = 'transparent';
-              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.9)';
-            }}
-            >
-              Om oss
-            </Link>
-            <Link href="/tjanster" style={{
-              display: 'block',
-              padding: '0.75rem 1rem',
-              color: 'rgba(255, 255, 255, 0.9)',
-              textDecoration: 'none',
-              fontSize: '0.8rem',
-              fontWeight: '300',
-              letterSpacing: '0.5px',
-              transition: 'all 0.2s ease',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
-            }}
-            onMouseEnter={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
-              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
-            }}
-            onMouseLeave={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = 'transparent';
-              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.9)';
-            }}
-            >
-              Tjänster
-            </Link>
-            <Link href="/villkor" style={{
-              display: 'block',
-              padding: '0.75rem 1rem',
-              color: 'rgba(255, 255, 255, 0.9)',
-              textDecoration: 'none',
-              fontSize: '0.8rem',
-              fontWeight: '300',
-              letterSpacing: '0.5px',
-              transition: 'all 0.2s ease',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
-            }}
-            onMouseEnter={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
-              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
-            }}
-            onMouseLeave={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = 'transparent';
-              (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.9)';
-            }}
-            >
-              Villkor
-            </Link>
-            {user && (
-              <button
-                onClick={logout}
+            <div className={`menu-section ${menuSectionsVisible[0] ? 'visible' : ''}`}>
+              <Link 
+                href="/" 
+                className={`menu-item ${menuItemsVisible[0] ? 'visible' : ''}`}
                 style={{
+                display: 'block',
+                padding: '1rem 1.25rem',
+                color: 'rgba(255, 255, 255, 0.85)',
+                textDecoration: 'none',
+                fontSize: '0.875rem',
+                fontWeight: '400',
+                letterSpacing: '0.025em',
+                transition: 'all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
+                position: 'relative'
+              }}
+              onClick={() => setIsMenuOpen(false)}
+              onMouseEnter={(e) => {
+                (e.target as HTMLElement).style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
+                (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
+                (e.target as HTMLElement).style.paddingLeft = '1.75rem';
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLElement).style.backgroundColor = 'transparent';
+                (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.85)';
+                (e.target as HTMLElement).style.paddingLeft = '1.5rem';
+              }}
+              >
+                Hem
+              </Link>
+            </div>
+            <div className={`menu-section ${menuSectionsVisible[1] ? 'visible' : ''}`}>
+              <Link 
+                href="/booking" 
+                className={`menu-item ${menuItemsVisible[1] ? 'visible' : ''}`}
+                style={{
+                display: 'block',
+                padding: '1rem 1.25rem',
+                color: 'rgba(255, 255, 255, 0.85)',
+                textDecoration: 'none',
+                fontSize: '0.875rem',
+                fontWeight: '400',
+                letterSpacing: '0.025em',
+                transition: 'all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
+                position: 'relative'
+              }}
+              onClick={() => setIsMenuOpen(false)}
+              onMouseEnter={(e) => {
+                (e.target as HTMLElement).style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
+                (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
+                (e.target as HTMLElement).style.paddingLeft = '1.75rem';
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLElement).style.backgroundColor = 'transparent';
+                (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.85)';
+                (e.target as HTMLElement).style.paddingLeft = '1.5rem';
+              }}
+              >
+                Boka resa
+              </Link>
+            </div>
+            <div className={`menu-section ${menuSectionsVisible[2] ? 'visible' : ''}`}>
+              <Link 
+                href="/driver" 
+                className={`menu-item ${menuItemsVisible[2] ? 'visible' : ''}`}
+                style={{
+                display: 'block',
+                padding: '1rem 1.25rem',
+                color: 'rgba(255, 255, 255, 0.85)',
+                textDecoration: 'none',
+                fontSize: '0.875rem',
+                fontWeight: '400',
+                letterSpacing: '0.025em',
+                transition: 'all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
+                position: 'relative'
+              }}
+              onClick={() => setIsMenuOpen(false)}
+              onMouseEnter={(e) => {
+                (e.target as HTMLElement).style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
+                (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
+                (e.target as HTMLElement).style.paddingLeft = '1.75rem';
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLElement).style.backgroundColor = 'transparent';
+                (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.85)';
+                (e.target as HTMLElement).style.paddingLeft = '1.5rem';
+              }}
+              >
+                Förare
+              </Link>
+            </div>
+            <div className={`menu-section ${menuSectionsVisible[3] ? 'visible' : ''}`}>
+              <Link 
+                href="/customer" 
+                className={`menu-item ${menuItemsVisible[3] ? 'visible' : ''}`}
+                style={{
+                display: 'block',
+                padding: '1rem 1.25rem',
+                color: 'rgba(255, 255, 255, 0.85)',
+                textDecoration: 'none',
+                fontSize: '0.875rem',
+                fontWeight: '400',
+                letterSpacing: '0.025em',
+                transition: 'all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
+                position: 'relative'
+              }}
+              onClick={() => setIsMenuOpen(false)}
+              onMouseEnter={(e) => {
+                (e.target as HTMLElement).style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
+                (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
+                (e.target as HTMLElement).style.paddingLeft = '1.75rem';
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLElement).style.backgroundColor = 'transparent';
+                (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.85)';
+                (e.target as HTMLElement).style.paddingLeft = '1.5rem';
+              }}
+              >
+                Kund
+              </Link>
+            </div>
+            {!user && (
+              <div className={`menu-section ${menuSectionsVisible[4] ? 'visible' : ''}`}>
+                <Link 
+                  href="/auth" 
+                  className={`menu-item ${menuItemsVisible[4] ? 'visible' : ''}`}
+                  style={{
+                  display: 'block',
+                  padding: '1rem 1.25rem',
+                  color: 'rgba(255, 255, 255, 0.85)',
+                  textDecoration: 'none',
+                  fontSize: '0.875rem',
+                  fontWeight: '400',
+                  letterSpacing: '0.025em',
+                  transition: 'all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
+                  position: 'relative'
+                }}
+                onClick={() => setIsMenuOpen(false)}
+                onMouseEnter={(e) => {
+                  (e.target as HTMLElement).style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
+                  (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
+                  (e.target as HTMLElement).style.paddingLeft = '1.75rem';
+                }}
+                onMouseLeave={(e) => {
+                  (e.target as HTMLElement).style.backgroundColor = 'transparent';
+                  (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.85)';
+                  (e.target as HTMLElement).style.paddingLeft = '1.5rem';
+                }}
+                >
+                  Logga in
+                </Link>
+              </div>
+            )}
+            <div className={`menu-section ${menuSectionsVisible[5] ? 'visible' : ''}`}>
+              <Link 
+                href="/faq" 
+                className={`menu-item ${menuItemsVisible[5] ? 'visible' : ''}`}
+                style={{
+                display: 'block',
+                padding: '1rem 1.25rem',
+                color: 'rgba(255, 255, 255, 0.85)',
+                textDecoration: 'none',
+                fontSize: '0.875rem',
+                fontWeight: '400',
+                letterSpacing: '0.025em',
+                transition: 'all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
+                position: 'relative'
+              }}
+              onClick={() => setIsMenuOpen(false)}
+              onMouseEnter={(e) => {
+                (e.target as HTMLElement).style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
+                (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
+                (e.target as HTMLElement).style.paddingLeft = '1.75rem';
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLElement).style.backgroundColor = 'transparent';
+                (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.85)';
+                (e.target as HTMLElement).style.paddingLeft = '1.5rem';
+              }}
+              >
+                FAQ
+              </Link>
+            </div>
+            <div className={`menu-section ${menuSectionsVisible[6] ? 'visible' : ''}`}>
+              <Link 
+                href="/integritet" 
+                className={`menu-item ${menuItemsVisible[6] ? 'visible' : ''}`}
+                style={{
+                display: 'block',
+                padding: '1rem 1.25rem',
+                color: 'rgba(255, 255, 255, 0.85)',
+                textDecoration: 'none',
+                fontSize: '0.875rem',
+                fontWeight: '400',
+                letterSpacing: '0.025em',
+                transition: 'all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
+                position: 'relative'
+              }}
+              onClick={() => setIsMenuOpen(false)}
+              onMouseEnter={(e) => {
+                (e.target as HTMLElement).style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
+                (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
+                (e.target as HTMLElement).style.paddingLeft = '1.75rem';
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLElement).style.backgroundColor = 'transparent';
+                (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.85)';
+                (e.target as HTMLElement).style.paddingLeft = '1.5rem';
+              }}
+              >
+                Integritet
+              </Link>
+            </div>
+            <div className={`menu-section ${menuSectionsVisible[7] ? 'visible' : ''}`}>
+              <Link 
+                href="/kakor" 
+                className={`menu-item ${menuItemsVisible[7] ? 'visible' : ''}`}
+                style={{
+                display: 'block',
+                padding: '1rem 1.25rem',
+                color: 'rgba(255, 255, 255, 0.85)',
+                textDecoration: 'none',
+                fontSize: '0.875rem',
+                fontWeight: '400',
+                letterSpacing: '0.025em',
+                transition: 'all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
+                position: 'relative'
+              }}
+              onClick={() => setIsMenuOpen(false)}
+              onMouseEnter={(e) => {
+                (e.target as HTMLElement).style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
+                (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
+                (e.target as HTMLElement).style.paddingLeft = '1.75rem';
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLElement).style.backgroundColor = 'transparent';
+                (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.85)';
+                (e.target as HTMLElement).style.paddingLeft = '1.5rem';
+              }}
+              >
+                Kakor
+              </Link>
+            </div>
+            <div className={`menu-section ${menuSectionsVisible[8] ? 'visible' : ''}`}>
+              <Link 
+                href="/kontakt" 
+                className={`menu-item ${menuItemsVisible[8] ? 'visible' : ''}`}
+                style={{
+                display: 'block',
+                padding: '1rem 1.25rem',
+                color: 'rgba(255, 255, 255, 0.85)',
+                textDecoration: 'none',
+                fontSize: '0.875rem',
+                fontWeight: '400',
+                letterSpacing: '0.025em',
+                transition: 'all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
+                position: 'relative'
+              }}
+              onClick={() => setIsMenuOpen(false)}
+              onMouseEnter={(e) => {
+                (e.target as HTMLElement).style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
+                (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
+                (e.target as HTMLElement).style.paddingLeft = '1.75rem';
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLElement).style.backgroundColor = 'transparent';
+                (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.85)';
+                (e.target as HTMLElement).style.paddingLeft = '1.5rem';
+              }}
+              >
+                Kontakt
+              </Link>
+            </div>
+            <div className={`menu-section ${menuSectionsVisible[9] ? 'visible' : ''}`}>
+              <Link 
+                href="/om-oss" 
+                className={`menu-item ${menuItemsVisible[9] ? 'visible' : ''}`}
+                style={{
+                display: 'block',
+                padding: '1rem 1.25rem',
+                color: 'rgba(255, 255, 255, 0.85)',
+                textDecoration: 'none',
+                fontSize: '0.875rem',
+                fontWeight: '400',
+                letterSpacing: '0.025em',
+                transition: 'all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
+                position: 'relative'
+              }}
+              onClick={() => setIsMenuOpen(false)}
+              onMouseEnter={(e) => {
+                (e.target as HTMLElement).style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
+                (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
+                (e.target as HTMLElement).style.paddingLeft = '1.75rem';
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLElement).style.backgroundColor = 'transparent';
+                (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.85)';
+                (e.target as HTMLElement).style.paddingLeft = '1.5rem';
+              }}
+              >
+                Om oss
+              </Link>
+            </div>
+            <div className={`menu-section ${menuSectionsVisible[10] ? 'visible' : ''}`}>
+              <Link 
+                href="/tjanster" 
+                className={`menu-item ${menuItemsVisible[10] ? 'visible' : ''}`}
+                style={{
+                display: 'block',
+                padding: '1rem 1.25rem',
+                color: 'rgba(255, 255, 255, 0.85)',
+                textDecoration: 'none',
+                fontSize: '0.875rem',
+                fontWeight: '400',
+                letterSpacing: '0.025em',
+                transition: 'all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
+                position: 'relative'
+              }}
+              onClick={() => setIsMenuOpen(false)}
+              onMouseEnter={(e) => {
+                (e.target as HTMLElement).style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
+                (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
+                (e.target as HTMLElement).style.paddingLeft = '1.75rem';
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLElement).style.backgroundColor = 'transparent';
+                (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.85)';
+                (e.target as HTMLElement).style.paddingLeft = '1.5rem';
+              }}
+              >
+                Tjänster
+              </Link>
+            </div>
+            <div className={`menu-section ${menuSectionsVisible[11] ? 'visible' : ''}`}>
+              <Link 
+                href="/villkor" 
+                className={`menu-item ${menuItemsVisible[11] ? 'visible' : ''}`}
+                style={{
+                display: 'block',
+                padding: '1rem 1.25rem',
+                color: 'rgba(255, 255, 255, 0.85)',
+                textDecoration: 'none',
+                fontSize: '0.875rem',
+                fontWeight: '400',
+                letterSpacing: '0.025em',
+                transition: 'all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
+                position: 'relative'
+              }}
+              onClick={() => setIsMenuOpen(false)}
+              onMouseEnter={(e) => {
+                (e.target as HTMLElement).style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
+                (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
+                (e.target as HTMLElement).style.paddingLeft = '1.75rem';
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLElement).style.backgroundColor = 'transparent';
+                (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.85)';
+                (e.target as HTMLElement).style.paddingLeft = '1.5rem';
+              }}
+              >
+                Villkor
+              </Link>
+            </div>
+            {user && userRole === 'admin' && (
+              <div className={`menu-section ${menuSectionsVisible[11] ? 'visible' : ''}`}>
+                <Link 
+                  href="/admin" 
+                  className={`menu-item ${menuItemsVisible[11] ? 'visible' : ''}`}
+                  style={{
+                  display: 'block',
+                  padding: '1rem 1.25rem',
+                  color: 'rgba(255, 255, 255, 0.85)',
+                  textDecoration: 'none',
+                  fontSize: '0.875rem',
+                  fontWeight: '400',
+                  letterSpacing: '0.025em',
+                  transition: 'all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
+                  position: 'relative'
+                }}
+                onClick={() => setIsMenuOpen(false)}
+                onMouseEnter={(e) => {
+                  (e.target as HTMLElement).style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
+                  (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
+                  (e.target as HTMLElement).style.paddingLeft = '1.75rem';
+                }}
+                onMouseLeave={(e) => {
+                  (e.target as HTMLElement).style.backgroundColor = 'transparent';
+                  (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.85)';
+                  (e.target as HTMLElement).style.paddingLeft = '1.5rem';
+                }}
+                >
+                  Admin Panel
+                </Link>
+              </div>
+            )}
+            {user && (
+              <div className={`menu-section ${menuSectionsVisible[userRole === 'admin' ? 12 : 11] ? 'visible' : ''}`}>
+                <button
+                  className={`menu-item ${menuItemsVisible[userRole === 'admin' ? 12 : 11] ? 'visible' : ''}`}
+                  onClick={() => {
+                    logout();
+                    setIsMenuOpen(false);
+                  }}
+                  style={{
                   display: 'block',
                   width: '100%',
-                  padding: '0.75rem 1rem',
-                  color: 'rgba(255, 255, 255, 0.9)',
-                  fontSize: '0.8rem',
-                  fontWeight: '300',
-                  letterSpacing: '0.5px',
-                  transition: 'all 0.2s ease',
+                  padding: '1rem 1.25rem',
+                  color: 'rgba(255, 255, 255, 0.85)',
+                  fontSize: '0.875rem',
+                  fontWeight: '400',
+                  letterSpacing: '0.025em',
+                  transition: 'all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
                   background: 'none',
                   border: 'none',
                   textAlign: 'left',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.03)'
                 }}
                 onMouseEnter={(e) => {
                   const target = e.target as HTMLButtonElement;
-                  target.style.backgroundColor = 'rgba(79, 195, 247, 0.1)';
+                  target.style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
                   target.style.color = 'rgba(255, 255, 255, 1)';
+                  target.style.paddingLeft = '1.75rem';
                 }}
                 onMouseLeave={(e) => {
                   const target = e.target as HTMLButtonElement;
                   target.style.backgroundColor = 'transparent';
-                  target.style.color = 'rgba(255, 255, 255, 0.9)';
+                  target.style.color = 'rgba(255, 255, 255, 0.85)';
+                  target.style.paddingLeft = '1.5rem';
                 }}
-              >
-                Logga ut
-              </button>
+                  >
+                    Logga ut
+                  </button>
+              </div>
             )}
           </div>
         </div>
@@ -937,6 +1412,7 @@ export default function Home() {
           </div>
         </div>
       </footer>
-    </div>
+      </div>
+    </>
   );
 }

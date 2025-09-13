@@ -19,6 +19,9 @@ export default function AdminDashboard() {
   });
 
   const [activeTab, setActiveTab] = useState('overview');
+  const [showCreateDriver, setShowCreateDriver] = useState(false);
+  const [showCreateBooking, setShowCreateBooking] = useState(false);
+  const [showCreateUser, setShowCreateUser] = useState(false);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -67,6 +70,48 @@ export default function AdminDashboard() {
       } catch (error) {
         console.error('Error deleting booking:', error);
       }
+    }
+  };
+
+  const handleCreateDriver = async (driverData: any) => {
+    try {
+      await firebaseOperations.create('drivers', {
+        ...driverData,
+        status: 'available',
+        rating: 5.0,
+        totalRides: 0,
+        createdAt: new Date()
+      });
+      setShowCreateDriver(false);
+    } catch (error) {
+      console.error('Error creating driver:', error);
+    }
+  };
+
+  const handleCreateBooking = async (bookingData: any) => {
+    try {
+      await firebaseOperations.create('bookings', {
+        ...bookingData,
+        status: 'waiting',
+        createdAt: new Date()
+      });
+      setShowCreateBooking(false);
+    } catch (error) {
+      console.error('Error creating booking:', error);
+    }
+  };
+
+  const handleCreateUser = async (userData: any) => {
+    try {
+      await firebaseOperations.create('users', {
+        ...userData,
+        role: 'customer',
+        status: 'active',
+        createdAt: new Date()
+      });
+      setShowCreateUser(false);
+    } catch (error) {
+      console.error('Error creating user:', error);
     }
   };
 
@@ -119,6 +164,12 @@ export default function AdminDashboard() {
           onClick={() => setActiveTab('messages')}
         >
           Meddelanden
+        </button>
+        <button 
+          className={activeTab === 'manage' ? 'active' : ''}
+          onClick={() => setActiveTab('manage')}
+        >
+          Hantera
         </button>
       </div>
 
@@ -335,8 +386,96 @@ export default function AdminDashboard() {
             </div>
           </div>
         )}
+
+        {activeTab === 'manage' && (
+          <div className="manage-tab">
+            <h3>Hantera systemet</h3>
+            
+            <div className="management-section">
+              <h4>Förarhantering</h4>
+              <p>Skapa nya förare och hantera befintliga förare i systemet.</p>
+              <button 
+                className="action-btn primary"
+                onClick={() => setShowCreateDriver(true)}
+              >
+                Skapa ny förare
+              </button>
+            </div>
+
+            <div className="management-section">
+              <h4>Användarhantering</h4>
+              <p>Skapa nya användare (kunder) i systemet.</p>
+              <button 
+                className="action-btn tertiary"
+                onClick={() => setShowCreateUser(true)}
+              >
+                Skapa ny användare
+              </button>
+            </div>
+
+            <div className="management-section">
+              <h4>Manuell bokning</h4>
+              <p>Skapa bokningar manuellt för kunder som behöver hjälp.</p>
+              <button 
+                className="action-btn secondary"
+                onClick={() => setShowCreateBooking(true)}
+              >
+                Skapa manuell bokning
+              </button>
+            </div>
+
+            <div className="management-section">
+              <h4>Systemstatistik</h4>
+              <div className="system-stats">
+                <div className="stat-item">
+                  <span className="stat-label">Aktiva förare</span>
+                  <span className="stat-value">{availableDrivers}</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-label">Väntande bokningar</span>
+                  <span className="stat-value">{allBookings.filter(b => b.status === 'waiting').length}</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-label">Slutförda idag</span>
+                  <span className="stat-value">{allBookings.filter(b => {
+                    const today = new Date();
+                    const bookingDate = new Date(b.createdAt?.toDate?.() || new Date());
+                    return b.status === 'completed' && 
+                           bookingDate.toDateString() === today.toDateString();
+                  }).length}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
+      {/* Create Driver Modal */}
+      {showCreateDriver && (
+        <CreateDriverModal 
+          onClose={() => setShowCreateDriver(false)}
+          onSubmit={handleCreateDriver}
+        />
+      )}
+
+      {/* Create Booking Modal */}
+      {showCreateBooking && (
+        <CreateBookingModal 
+          onClose={() => setShowCreateBooking(false)}
+          onSubmit={handleCreateBooking}
+          drivers={allDrivers}
+        />
+      )}
+
+      {/* Create User Modal */}
+      {showCreateUser && (
+        <CreateUserModal 
+          onClose={() => setShowCreateUser(false)}
+          onSubmit={handleCreateUser}
+        />
+      )}
+
+      {/* Modal Components */}
       <style jsx>{`
         .admin-dashboard {
           padding: 2rem;
@@ -598,6 +737,226 @@ export default function AdminDashboard() {
           font-size: 0.875rem;
         }
 
+        .manage-tab {
+          padding: 1rem 0;
+        }
+
+        .manage-tab h3 {
+          margin: 0 0 2rem 0;
+          color: #1e293b;
+          font-size: 1.5rem;
+        }
+
+        .management-section {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 2rem;
+          margin-bottom: 2rem;
+        }
+
+        .management-section h4 {
+          margin: 0 0 0.5rem 0;
+          color: #1e293b;
+          font-size: 1.25rem;
+        }
+
+        .management-section p {
+          margin: 0 0 1.5rem 0;
+          color: #64748b;
+          font-size: 1rem;
+        }
+
+        .action-btn {
+          padding: 0.75rem 1.5rem;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 1rem;
+          font-weight: 600;
+          transition: all 0.2s;
+        }
+
+        .action-btn.primary {
+          background: #3b82f6;
+          color: white;
+        }
+
+        .action-btn.primary:hover {
+          background: #2563eb;
+        }
+
+        .action-btn.secondary {
+          background: #10b981;
+          color: white;
+        }
+
+        .action-btn.secondary:hover {
+          background: #059669;
+        }
+
+        .action-btn.tertiary {
+          background: #8b5cf6;
+          color: white;
+        }
+
+        .action-btn.tertiary:hover {
+          background: #7c3aed;
+        }
+
+        .system-stats {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 1rem;
+          margin-top: 1rem;
+        }
+
+        .stat-item {
+          background: white;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          padding: 1.5rem;
+          text-align: center;
+        }
+
+        .stat-label {
+          display: block;
+          color: #64748b;
+          font-size: 0.875rem;
+          margin-bottom: 0.5rem;
+        }
+
+          .stat-value {
+            display: block;
+            color: #1e293b;
+            font-size: 2rem;
+            font-weight: bold;
+          }
+
+          /* Modal Styles */
+          .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+          }
+
+          .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+          }
+
+          .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+          }
+
+          .modal-title {
+            margin: 0;
+            color: #1e293b;
+            font-size: 1.5rem;
+          }
+
+          .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #64748b;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .modal-close:hover {
+            color: #1e293b;
+          }
+
+          .form-group {
+            margin-bottom: 1.5rem;
+          }
+
+          .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #374151;
+            font-weight: 500;
+          }
+
+          .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 1rem;
+          }
+
+          .form-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+          }
+
+          .form-select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 1rem;
+            background: white;
+          }
+
+          .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+          }
+
+          .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.2s;
+          }
+
+          .btn-secondary {
+            background: #6b7280;
+            color: white;
+          }
+
+          .btn-secondary:hover {
+            background: #4b5563;
+          }
+
+          .btn-primary {
+            background: #3b82f6;
+            color: white;
+          }
+
+          .btn-primary:hover {
+            background: #2563eb;
+          }
+
         @media (max-width: 768px) {
           .admin-dashboard {
             padding: 1rem;
@@ -626,6 +985,383 @@ export default function AdminDashboard() {
           }
         }
       `}</style>
+    </div>
+  );
+}
+
+// Create Driver Modal Component
+function CreateDriverModal({ onClose, onSubmit }: { onClose: () => void, onSubmit: (data: any) => void }) {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    car: '',
+    licensePlate: '',
+    status: 'available'
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2 className="modal-title">Skapa ny förare</h2>
+          <button className="modal-close" onClick={onClose}>×</button>
+        </div>
+        
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label">Namn</label>
+            <input
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              className="form-input"
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label className="form-label">E-post</label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className="form-input"
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label className="form-label">Telefon</label>
+            <input
+              type="tel"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              className="form-input"
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label className="form-label">Bil</label>
+            <input
+              type="text"
+              name="car"
+              value={formData.car}
+              onChange={handleChange}
+              className="form-input"
+              placeholder="t.ex. Volvo XC60"
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label className="form-label">Registreringsnummer</label>
+            <input
+              type="text"
+              name="licensePlate"
+              value={formData.licensePlate}
+              onChange={handleChange}
+              className="form-input"
+              placeholder="t.ex. ABC123"
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label className="form-label">Status</label>
+            <select
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              className="form-select"
+            >
+              <option value="available">Tillgänglig</option>
+              <option value="busy">Upptagen</option>
+              <option value="offline">Offline</option>
+            </select>
+          </div>
+          
+          <div className="modal-actions">
+            <button type="button" className="btn btn-secondary" onClick={onClose}>
+              Avbryt
+            </button>
+            <button type="submit" className="btn btn-primary">
+              Skapa förare
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// Create Booking Modal Component
+function CreateBookingModal({ onClose, onSubmit, drivers }: { onClose: () => void, onSubmit: (data: any) => void, drivers: any[] }) {
+  const [formData, setFormData] = useState({
+    customerEmail: '',
+    customerPhone: '',
+    pickup: {
+      address: '',
+      lat: 0,
+      lng: 0
+    },
+    destination: {
+      address: '',
+      lat: 0,
+      lng: 0
+    },
+    price: '',
+    driverId: '',
+    notes: ''
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    
+    if (name.includes('.')) {
+      const [parent, child] = name.split('.');
+      const parentData = formData[parent as keyof typeof formData] as any;
+      setFormData({
+        ...formData,
+        [parent]: {
+          ...parentData,
+          [child]: name.includes('lat') || name.includes('lng') ? parseFloat(value) || 0 : value
+        }
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: name === 'price' ? parseFloat(value) || 0 : value
+      });
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2 className="modal-title">Skapa manuell bokning</h2>
+          <button className="modal-close" onClick={onClose}>×</button>
+        </div>
+        
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label">Kund e-post</label>
+            <input
+              type="email"
+              name="customerEmail"
+              value={formData.customerEmail}
+              onChange={handleChange}
+              className="form-input"
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label className="form-label">Kund telefon</label>
+            <input
+              type="tel"
+              name="customerPhone"
+              value={formData.customerPhone}
+              onChange={handleChange}
+              className="form-input"
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label className="form-label">Hämtningsadress</label>
+            <input
+              type="text"
+              name="pickup.address"
+              value={formData.pickup.address}
+              onChange={handleChange}
+              className="form-input"
+              placeholder="t.ex. Storgatan 1, Stockholm"
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label className="form-label">Destinationsadress</label>
+            <input
+              type="text"
+              name="destination.address"
+              value={formData.destination.address}
+              onChange={handleChange}
+              className="form-input"
+              placeholder="t.ex. Centralstationen, Stockholm"
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label className="form-label">Pris (kr)</label>
+            <input
+              type="number"
+              name="price"
+              value={formData.price}
+              onChange={handleChange}
+              className="form-input"
+              min="0"
+              step="0.01"
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label className="form-label">Tilldela förare (valfritt)</label>
+            <select
+              name="driverId"
+              value={formData.driverId}
+              onChange={handleChange}
+              className="form-select"
+            >
+              <option value="">Välj förare</option>
+              {drivers.filter(d => d.status === 'available').map(driver => (
+                <option key={driver.id} value={driver.id}>
+                  {driver.name} - {driver.car}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="form-group">
+            <label className="form-label">Anteckningar</label>
+            <textarea
+              name="notes"
+              value={formData.notes}
+              onChange={handleChange}
+              className="form-input"
+              rows={3}
+              placeholder="Eventuella specialförfrågningar eller information..."
+            />
+          </div>
+          
+          <div className="modal-actions">
+            <button type="button" className="btn btn-secondary" onClick={onClose}>
+              Avbryt
+            </button>
+            <button type="submit" className="btn btn-primary">
+              Skapa bokning
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// Create User Modal Component
+function CreateUserModal({ onClose, onSubmit }: { onClose: () => void, onSubmit: (data: any) => void }) {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: ''
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2 className="modal-title">Skapa ny användare</h2>
+          <button className="modal-close" onClick={onClose}>×</button>
+        </div>
+        
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label">Namn</label>
+            <input
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              className="form-input"
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label className="form-label">E-post</label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className="form-input"
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label className="form-label">Telefon</label>
+            <input
+              type="tel"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              className="form-input"
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label className="form-label">Adress</label>
+            <input
+              type="text"
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              className="form-input"
+              placeholder="t.ex. Storgatan 1, Stockholm"
+              required
+            />
+          </div>
+          
+          <div className="modal-actions">
+            <button type="button" className="btn btn-secondary" onClick={onClose}>
+              Avbryt
+            </button>
+            <button type="submit" className="btn btn-primary">
+              Skapa användare
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

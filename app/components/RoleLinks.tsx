@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { getAuthSafe } from '../../firebase.config';
+import { auth } from '../../lib/firebase';
 
 export default function RoleLinks() {
   const [showAdmin, setShowAdmin] = useState(false);
@@ -11,7 +11,6 @@ export default function RoleLinks() {
 
   useEffect(() => {
     // Detect anonymous driver session
-    const auth = getAuthSafe();
     if (!auth) return;
     const unsub = onAuthStateChanged(auth, (u) => {
       setShowDriver(Boolean(u?.isAnonymous));

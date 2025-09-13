@@ -89,7 +89,7 @@ export default function AuthPage() {
         } else if (userRole === 'driver') {
           router.push('/driver');
         } else {
-          router.push('/booking');
+          router.push('/');
         }
       }
     }
@@ -189,7 +189,7 @@ export default function AuthPage() {
     try {
       await signInWithGoogle();
       setIsGoogleLoading(false); // Stop loading before redirect
-      router.push('/booking');
+      router.push('/');
       return; // Exit early to prevent finally block
     } catch (error: any) {
       console.error('Google auth error:', error);
@@ -214,7 +214,7 @@ export default function AuthPage() {
     try {
       await signInWithApple();
       setIsAppleLoading(false); // Stop loading before redirect
-      router.push('/booking');
+      router.push('/');
       return; // Exit early to prevent finally block
     } catch (error: any) {
       console.error('Apple auth error:', error);
@@ -620,7 +620,7 @@ export default function AuthPage() {
                   <PhoneLoginV2 
                     onSuccess={() => {
                       // Efter lyckad telefon-inloggning
-                      router.push('/booking');
+                      router.push('/');
                     }}
                     className="w-full"
                   />

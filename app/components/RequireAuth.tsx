@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { getAuthSafe } from '../../firebase.config';
+import { auth } from '../../lib/firebase';
 import { usePathname, useRouter } from 'next/navigation';
 
 export default function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -16,7 +16,6 @@ export default function RequireAuth({ children }: { children: React.ReactNode })
       setUser(null);
       return;
     }
-    const auth = getAuthSafe();
     if (!auth) { setUser(null); return; }
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);

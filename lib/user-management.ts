@@ -106,8 +106,8 @@ export const createUserProfile = async (
         phone: user.phoneNumber,
         role: additionalData.role || 'customer',
         profile: {
-          name: additionalData.name,
-          phone: additionalData.phone,
+          name: additionalData.name || null,
+          phone: additionalData.phone || null,
           preferences: {
             defaultAddresses: {},
             notifications: {
@@ -130,7 +130,7 @@ export const createUserProfile = async (
       
       // Uppdatera Firebase Auth-profil
       await updateProfile(user, {
-        displayName: additionalData.name
+        displayName: additionalData.name || null
       });
     }
   } catch (error) {

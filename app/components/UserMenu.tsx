@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
-import { getAuthSafe } from '../../firebase.config';
+import { auth } from '../../lib/firebase';
 import { useRouter } from 'next/navigation';
 
 export default function UserMenu() {
@@ -12,7 +12,6 @@ export default function UserMenu() {
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const auth = getAuthSafe();
     if (!auth) return;
     const unsub = onAuthStateChanged(auth, (u) => {
       if (u && !u.isAnonymous) setUser(u); else setUser(null);
@@ -34,7 +33,7 @@ export default function UserMenu() {
   const initial = (user.displayName || user.email || 'A').trim().charAt(0).toUpperCase();
 
   const handleLogout = async () => {
-    try { const auth = getAuthSafe(); if (auth) await signOut(auth); } catch {}
+    try { if (auth) await signOut(auth); } catch {}
     setOpen(false);
     router.replace('/login');
   };

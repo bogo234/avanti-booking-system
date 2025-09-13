@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getAuthSafe } from '../../firebase.config';
+import { auth } from '../../lib/firebase';
 import { RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
 
 type PhoneLoginProps = {
@@ -43,7 +43,6 @@ export default function PhoneLogin({ onSuccess, className }: PhoneLoginProps) {
   const ensureRecaptcha = useCallback(async () => {
     if (recaptchaRef.current) return recaptchaRef.current;
     
-    const auth = getAuthSafe();
     if (!auth) throw new Error('noauth');
     
     try {
@@ -92,9 +91,8 @@ export default function PhoneLogin({ onSuccess, className }: PhoneLoginProps) {
     console.log('📱 Telefonnummer:', phone);
     
     try {
-      const auth = getAuthSafe();
       if (!auth) {
-        console.error('❌ getAuthSafe returnerade null');
+        console.error('❌ Firebase Auth inte tillgänglig');
         throw new Error('Firebase Auth inte tillgänglig');
       }
       

@@ -1,0 +1,15 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+
+- Do **not** use fallback solutions, temporary builds, or quick fixes.  
+- Do **not** use mock data, hardcoded test data, or fake implementations.  
+- All code must be **production-ready, clean, and scalable**.  
+- If something is unclear or missing, you must **stop and ask for clarification** instead of making assumptions or inserting placeholders.  
+- Always prioritize **correct implementation over speed**.  
+- Follow **best practices** and build with long-term maintainability in mind.
+- **NEVER** suggest creating a new `.env.local` file - it already exists and contains all necessary environment variables.
+- **ALWAYS** assume `.env.local` exists and use terminal commands to read it when needed.
+- **NEVER** do anything unnecessary or redundant in important processes.  

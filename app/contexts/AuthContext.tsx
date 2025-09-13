@@ -13,7 +13,7 @@ interface AuthContextType {
   userProfile: UserProfile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, name: string, phone?: string) => Promise<void>;
+  signUp: (email: string, password: string, name: string, phone?: string) => Promise<User>;
   signInWithGoogle: () => Promise<void>;
   signInWithApple: () => Promise<void>;
   logout: () => Promise<void>;
@@ -34,8 +34,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const profile = await getUserProfile(firebaseUser.uid);
       if (profile) {
-        setUserProfile(profile);
-        setUserRole(profile.role);
+        // Check if user should be admin based on email
+        if (firebaseUser.email === 'admin@avanti.se' && profile.role !== 'admin') {
+          // Update existing profile to admin
+          await createUserProfile(firebaseUser, {
+            name: 'Admin User',
+            role: 'admin'
+          });
+          setUserRole('admin');
+        } else {
+          setUserProfile(profile);
+          setUserRole(profile.role);
+        }
       } else {
         // If no profile exists, create one for existing users
         if (firebaseUser.email === 'admin@avanti.se') {
@@ -50,7 +60,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Error loading user profile:', error);
-      setUserRole('customer'); // Default fallback
+      // Set admin role for admin@avanti.se even if profile loading fails
+      if (firebaseUser.email === 'admin@avanti.se') {
+        setUserRole('admin');
+      } else {
+        setUserRole('customer');
+      }
     }
   };
 
@@ -95,11 +110,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (user.email) {
         const linkedCount = await linkExistingBookings(user.email, user.uid);
         if (linkedCount > 0) {
-          console.log(`Linked ${linkedCount} existing bookings to new account`);
+          // Log successful booking linking for debugging
+          console.info(`Successfully linked ${linkedCount} existing bookings to new account for ${user.email}`);
         }
       }
       
       setUserRole('customer');
+      return user; // Return the created user
     } catch (error) {
       console.error('Sign up error:', error);
       throw error;

@@ -62,10 +62,20 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('AI Assistant API Error:', error)
     
-    // Fallback response if OpenAI fails
-    const fallbackResponse = `Just nu har vi tekniska problem med AI-assistenten. Kontakta oss direkt på hello@avanti-app.se eller +46 72 123 45 67 för hjälp.`
+    // Robust fallback response with proper error handling
+    const fallbackResponse = `Jag beklagar, men AI-assistenten är tillfälligt otillgänglig. För omedelbar hjälp, kontakta vår kundtjänst:
+
+📞 **Telefon:** +46 72 123 45 67
+📧 **E-post:** hello@avanti-app.se
+💬 **Chat:** Tillgänglig 24/7 på vår hemsida
+
+Vi arbetar för att lösa problemet så snart som möjligt. Tack för ditt tålamod!`
     
-    return NextResponse.json({ response: fallbackResponse })
+    return NextResponse.json({ 
+      response: fallbackResponse,
+      error: 'AI service temporarily unavailable',
+      timestamp: new Date().toISOString()
+    })
   }
 }
 

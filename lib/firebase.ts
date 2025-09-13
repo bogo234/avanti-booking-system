@@ -3,15 +3,23 @@ import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, getDocs, g
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, OAuthProvider, sendEmailVerification, updateProfile, reload } from 'firebase/auth';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 
+// Firebase configuration from environment variables
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyDWaDKO-qdKyxRNX6gag6mAHEs36_Oj9bw",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "avanti-booking-system.firebaseapp.com",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "avanti-booking-system",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "avanti-booking-system.firebasestorage.app",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "524784289735",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:524784289735:web:148ee7e81e5076e4ab3be2",
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-KXDENH3QY4"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
+
+// VAPID Key for Web Push Notifications
+export const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+
+if (!vapidKey) {
+  console.warn('NEXT_PUBLIC_FIREBASE_VAPID_KEY not set. Push notifications will not work.');
+}
 
 // Initialize Firebase app with error handling for duplicates
 let app;
@@ -246,7 +254,7 @@ export const requestNotificationPermission = async () => {
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
       const token = await getToken(messaging, {
-        vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY
+        vapidKey: vapidKey
       });
       return token;
     }
