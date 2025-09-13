@@ -40,7 +40,8 @@ export default function AuthPage() {
   const [authMode, setAuthMode] = useState<AuthMode>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState({ code: '+46', flag: '🇸🇪', name: 'Sverige' });
@@ -135,14 +136,19 @@ export default function AuthPage() {
         // If successful, redirect will happen in useEffect
       } else if (authMode === 'signup') {
         // Validate required fields for signup
-        if (!name.trim()) {
-          setError('Namn är obligatoriskt');
+        if (!firstName.trim()) {
+          setError('Förnamn är obligatoriskt');
+          return;
+        }
+        if (!lastName.trim()) {
+          setError('Efternamn är obligatoriskt');
           return;
         }
         
         // Create new account
         const fullPhoneNumber = phone.trim() ? selectedCountry.code + phone.trim() : undefined;
-        await signUp(email, password, name.trim(), fullPhoneNumber);
+        const fullName = `${firstName.trim()} ${lastName.trim()}`;
+        await signUp(email, password, fullName, fullPhoneNumber);
         
         // Send verification email
         if (user) {
@@ -251,13 +257,13 @@ export default function AuthPage() {
       <div className="absolute inset-0 -z-10 pointer-events-none bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.08)_0%,transparent_70%)]" />
       <div className="w-full h-screen flex items-center justify-center px-4" style={{ zIndex: 10, position: 'relative', overflow: 'hidden', paddingTop: '100px' }}>
         <div className="w-full max-w-[400px]">
-          <div className="rounded-3xl p-4 md:p-6 shadow-2xl bg-white/8 backdrop-blur-xl space-y-3" style={{ 
+          <div className="rounded-3xl p-4 md:p-6 shadow-2xl bg-white/8 backdrop-blur-xl space-y-0" style={{ 
             background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
             border: '1px solid rgba(255,255,255,0.1)',
             boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)'
           }}>
             <div className="text-center">
-              <h1 className="text-white/95 text-xl md:text-3xl font-semibold mb-2" style={{ 
+              <h1 className="text-white/95 text-xl md:text-3xl font-semibold mb-1" style={{ 
                 background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.8) 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
@@ -282,7 +288,7 @@ export default function AuthPage() {
               
             </div>
             
-            <div className="grid grid-cols-1 gap-2">
+            <div className="grid grid-cols-1 gap-2 mb-4">
               <AuthButton 
                 variant="google"
                 onClick={handleGoogleAuth}
@@ -312,16 +318,17 @@ export default function AuthPage() {
               </AuthButton>
             </div>
             
-            <div className="flex items-center gap-3 my-2">
+            <div className="flex items-center gap-3 my-0">
               <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent flex-1"></div>
               <span className="text-white/60 text-xs font-medium px-3 py-1 rounded-full" style={{ 
                 background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)'
-              }}>eller</span>
+                border: '1px solid rgba(255,255,255,0.1)',
+                transform: 'translateY(-0.5rem)'
+              }}>Eller</span>
               <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent flex-1"></div>
             </div>
             
-            <div className="flex items-center justify-center mb-2">
+            <div className="flex items-center justify-center mb-0">
               <div className="inline-flex rounded-xl p-1 text-xs" style={{ 
                 background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%)',
                 border: '1px solid rgba(255,255,255,0.1)',
@@ -385,39 +392,49 @@ export default function AuthPage() {
               </div>
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-0">
               {activeTab === 'email' && (
-                <form onSubmit={handleEmailAuth} className="space-y-2">
-                  {/* Name field for signup */}
+                <form onSubmit={handleEmailAuth} className="space-y-0">
+                  {/* Name fields for signup */}
                   {authMode === 'signup' && (
-                    <div>
-                      <label className="text-xs text-zinc-400" htmlFor="name">Namn</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                          </svg>
-                        </span>
-                        <input 
-                          id="name" 
-                          data-testid="input-name" 
-                          className="pl-10 rounded-2xl bg-white/5 w-full px-3 py-2 text-sm text-white outline-none border-none placeholder:text-zinc-500 focus:bg-white/8" 
-                          placeholder="Ditt namn" 
-                          type="text" 
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          required={authMode === 'signup'}
-                          disabled={isLoading}
-                        />
+                    <div className="mb-0">
+                      <label className="text-xs text-zinc-400">Namn</label>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <input 
+                            id="firstName" 
+                            data-testid="input-firstName" 
+                            className="rounded-2xl bg-white/5 w-full px-3 py-2 text-sm text-white outline-none border border-white/10 placeholder:text-zinc-500 focus:bg-white/8 focus:border-white/20" 
+                            placeholder="Förnamn" 
+                            type="text" 
+                            value={firstName}
+                            onChange={(e) => setFirstName(e.target.value)}
+                            required={authMode === 'signup'}
+                            disabled={isLoading}
+                          />
+                        </div>
+                        <div className="relative flex-1">
+                          <input 
+                            id="lastName" 
+                            data-testid="input-lastName" 
+                            className="rounded-2xl bg-white/5 w-full px-3 py-2 text-sm text-white outline-none border border-white/10 placeholder:text-zinc-500 focus:bg-white/8 focus:border-white/20" 
+                            placeholder="Efternamn" 
+                            type="text" 
+                            value={lastName}
+                            onChange={(e) => setLastName(e.target.value)}
+                            required={authMode === 'signup'}
+                            disabled={isLoading}
+                          />
+                        </div>
                       </div>
                     </div>
                   )}
 
                   {/* Phone field for signup */}
                   {authMode === 'signup' && (
-                    <div>
+                    <div className="mb-0">
                       <label className="text-xs text-zinc-400">Mobilnummer</label>
-                      <div className="relative mt-1">
+                      <div className="relative">
                         {/* Country Code Dropdown */}
                         <div ref={dropdownRef} className="absolute left-3 top-1/2 -translate-y-1/2 z-20">
                             <button
@@ -451,8 +468,7 @@ export default function AuthPage() {
                                   }}
                                   className="w-full flex items-center justify-start gap-2 px-3 py-2 text-xs text-white transition-all duration-200 hover:bg-gray-600 group"
                                   style={{ 
-                                    background: '#2a2a2a',
-                                    borderBottom: index < COUNTRIES.length - 1 ? '1px solid #444444' : 'none'
+                                    background: '#2a2a2a'
                                   }}
                                   onMouseEnter={(e) => {
                                     e.currentTarget.style.boxShadow = '0 0 10px #ffffff';
@@ -470,8 +486,8 @@ export default function AuthPage() {
                         </div>
                         
                         <input 
-                          className="pl-32 rounded-2xl bg-white/5 w-full px-3 py-2 text-sm text-white outline-none border-none placeholder:text-zinc-500 focus:bg-white/8"
-                          style={{ border: '1px solid rgba(255, 255, 255, 0.2)', paddingLeft: '3.5rem' }}
+                          className="pl-32 rounded-2xl bg-white/5 w-full px-3 py-2 text-sm text-white outline-none border border-white/10 placeholder:text-zinc-500 focus:bg-white/8 focus:border-white/20"
+                          style={{ paddingLeft: '3.5rem' }}
                           placeholder={phone ? '' : '712345678'} 
                           type="tel" 
                           value={phone}
@@ -483,7 +499,7 @@ export default function AuthPage() {
                   )}
 
                   {/* Email field */}
-                  <div>
+                  <div className="mb-0">
                     <label className="text-xs text-zinc-400" htmlFor="email">E‑post</label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
@@ -505,8 +521,9 @@ export default function AuthPage() {
                     </div>
                   </div>
                   
-                  <label className="text-xs text-zinc-400" htmlFor="password">Lösenord</label>
-                  <div className="relative">
+                  <div className="mb-0">
+                    <label className="text-xs text-zinc-400" htmlFor="password">Lösenord</label>
+                    <div className="relative">
                     
                                           <input 
                         id="password" 
@@ -559,12 +576,13 @@ export default function AuthPage() {
                         </svg>
                       </button>
                     </div>
+                  </div>
                   
                   <button 
                     data-testid="btn-email" 
                     type="submit"
-                    disabled={isLoading || !email || !password || (authMode === 'signup' && !name.trim())}
-                    className="w-full inline-flex items-center justify-center gap-3 rounded-2xl px-6 py-4 text-sm font-semibold transition-all duration-300 focus:outline-none mt-2"
+                    disabled={isLoading || !email || !password || (authMode === 'signup' && (!firstName.trim() || !lastName.trim()))}
+                    className="w-full inline-flex items-center justify-center gap-3 rounded-2xl px-6 py-4 text-sm font-semibold transition-all duration-300 focus:outline-none mt-2 mb-4"
                     style={{
                       background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.08) 100%)',
                       border: '1px solid rgba(255,255,255,0.2)',
@@ -573,14 +591,14 @@ export default function AuthPage() {
                       transform: 'translateY(0)',
                     }}
                     onMouseEnter={(e) => {
-                      if (!isLoading && email && password && (authMode === 'signin' || name.trim())) {
+                      if (!isLoading && email && password && (authMode === 'signin' || (firstName.trim() && lastName.trim()))) {
                         e.currentTarget.style.transform = 'translateY(-2px)';
                         e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.3)';
                         e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.12) 100%)';
                       }
                     }}
                     onMouseLeave={(e) => {
-                      if (!isLoading && email && password && (authMode === 'signin' || name.trim())) {
+                      if (!isLoading && email && password && (authMode === 'signin' || (firstName.trim() && lastName.trim()))) {
                         e.currentTarget.style.transform = 'translateY(0)';
                         e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.2)';
                         e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.08) 100%)';
@@ -610,7 +628,7 @@ export default function AuthPage() {
               )}
             </div>
             
-            <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center justify-between pt-4">
               <div className="flex items-center gap-3 text-white text-[11px]">
                 {authMode === 'signin' ? (
                   <a
