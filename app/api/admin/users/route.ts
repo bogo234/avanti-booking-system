@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb, getAdminAuth, verifyAuthToken, getUserRole } from '../../../../lib/firebase-admin';
 import { z } from 'zod';
+import type { Query } from 'firebase-admin/firestore';
+
+// Lightweight admin user view model
+interface AdminUserItem {
+  id: string;
+  email?: string;
+  role?: 'customer' | 'driver' | 'admin';
+  status?: 'active' | 'suspended' | 'banned' | 'deleted';
+  profile?: { name?: string; phone?: string; address?: string | null };
+  driverData?: Record<string, unknown>;
+  metadata?: any;
+  [key: string]: any;
+}
 
 // Validation schemas
 const UserUpdateSchema = z.object({
@@ -111,7 +124,7 @@ export async function GET(request: NextRequest) {
     const adminAuth = getAdminAuth();
 
     // Bygg Firestore query
-    let usersQuery = db.collection('users');
+    let usersQuery: Query = db.collection('users');
 
     // Filtrera på roll
     if (role) {
@@ -128,10 +141,10 @@ export async function GET(request: NextRequest) {
 
     // Hämta data
     const snapshot = await usersQuery.get();
-    let users = snapshot.docs.map(doc => ({
+    let users: AdminUserItem[] = snapshot.docs.map(doc => ({
       id: doc.id,
-      ...doc.data()
-    }));
+      ...(doc.data() as any)
+    } as AdminUserItem));
 
     // Textfiltrering (görs efter Firestore query för flexibilitet)
     if (query) {
@@ -176,7 +189,7 @@ export async function GET(request: NextRequest) {
 
     // Hämta statistik
     const statsQuery = await db.collection('users').get();
-    const allUsers = statsQuery.docs.map(doc => doc.data());
+    const allUsers: AdminUserItem[] = statsQuery.docs.map(doc => doc.data() as any);
     
     const statistics = {
       total: allUsers.length,

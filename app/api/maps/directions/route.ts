@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuthToken } from '../../../../lib/firebase-admin';
 import { googleMapsClient, GoogleMapsUtils, Coordinates } from '../../../../lib/google-maps-enhanced';
-import { PriceCalculator } from '../../../../lib/stripe-enhanced';
+import { PriceCalculator, StripeConfig } from '../../../../lib/stripe-enhanced';
 import { z } from 'zod';
 
 // Validation schemas
@@ -113,9 +113,13 @@ export async function POST(request: NextRequest) {
       includeAlternatives
     } = validationResult.data;
 
+    // Coerce input to proper union types
+    const originInput = typeof origin === 'string' ? origin : { lat: origin.lat, lng: origin.lng };
+    const destinationInput = typeof destination === 'string' ? destination : { lat: destination.lat, lng: destination.lng };
+
     // Validera att start och slutpunkt är inom Sverige
-    const originCoords = await validateSwedishLocation(origin);
-    const destinationCoords = await validateSwedishLocation(destination);
+    const originCoords = await validateSwedishLocation(originInput);
+    const destinationCoords = await validateSwedishLocation(destinationInput);
 
     if (!originCoords.success) {
       return NextResponse.json(
@@ -132,16 +136,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Validera waypoints
-    const validatedWaypoints = [];
+    const validatedWaypoints: (string | Coordinates)[] = [];
     for (const waypoint of waypoints) {
-      const waypointCoords = await validateSwedishLocation(waypoint);
+      const waypointInput: string | Coordinates = typeof waypoint === 'string' ? waypoint : { lat: waypoint.lat, lng: waypoint.lng };
+      const waypointCoords = await validateSwedishLocation(waypointInput);
       if (!waypointCoords.success) {
         return NextResponse.json(
           { error: `Waypoint: ${waypointCoords.error}` },
           { status: 400 }
         );
       }
-      validatedWaypoints.push(waypoint);
+      validatedWaypoints.push(waypointInput);
     }
 
     // Förbered departure time
@@ -149,8 +154,8 @@ export async function POST(request: NextRequest) {
 
     // Hämta directions från Google Maps
     const directionsResult = await googleMapsClient.getDirections(
-      origin,
-      destination,
+      originInput,
+      destinationInput,
       {
         waypoints: validatedWaypoints,
         travelMode,
@@ -200,7 +205,7 @@ export async function POST(request: NextRequest) {
             distance: `${distanceKm.toFixed(1)} km`,
             baseRate: `${Math.round(basePrice / distanceKm)} SEK/km`,
             serviceType: serviceType,
-            serviceFeeRate: `${Math.round(PriceCalculator.serviceFee[serviceType] * 100)}%`
+            serviceFeeRate: `${Math.round(StripeConfig.serviceFee[serviceType] * 100)}%`
           }
         };
       }
@@ -275,8 +280,8 @@ export async function POST(request: NextRequest) {
       summary,
       recommendations,
       query: {
-        origin,
-        destination,
+        origin: originInput,
+        destination: destinationInput,
         waypoints: validatedWaypoints,
         serviceType,
         travelMode,

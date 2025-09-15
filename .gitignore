@@ -6,3 +6,6 @@ node_modules/
 .cursor/
 *-firebase-adminsdk-*.json
 service-account*.json
+
+# Backup files
+.gitignore.bak

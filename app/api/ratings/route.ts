@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb, verifyAuthToken, getUserRole } from '../../../lib/firebase-admin';
 import { z } from 'zod';
+import type { Query } from 'firebase-admin/firestore';
 
 // Validation schemas
 const SubmitRatingSchema = z.object({
@@ -316,7 +317,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Bygg query
-    let ratingsQuery = db.collection('ratings');
+    let ratingsQuery: Query = db.collection('ratings');
 
     if (driverId) {
       ratingsQuery = ratingsQuery.where('driverId', '==', driverId);

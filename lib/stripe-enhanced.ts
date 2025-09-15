@@ -388,13 +388,5 @@ export class StripeErrorHandler {
   }
 }
 
-// Export all utilities
-export {
-  stripe as default,
-  StripeConfig,
-  PriceCalculator,
-  StripeCustomerManager,
-  PaymentIntentManager,
-  RefundManager,
-  StripeErrorHandler
-};
+// Export default only to avoid duplicate named exports
+export default stripe;

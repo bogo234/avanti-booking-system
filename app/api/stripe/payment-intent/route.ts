@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuthToken, getUserRole, getAdminDb } from '../../../../lib/firebase-admin';
-import { 
+import stripe, { 
   PaymentIntentManager, 
   StripeCustomerManager, 
   PriceCalculator,
@@ -261,7 +261,7 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString()
     });
     
-    if (error instanceof Stripe.StripeError) {
+    if (error instanceof Stripe.errors.StripeError) {
       const stripeError = StripeErrorHandler.handleStripeError(error);
       return NextResponse.json(
         { error: stripeError.message, code: stripeError.code },
@@ -398,7 +398,7 @@ export async function PUT(request: NextRequest) {
       timestamp: new Date().toISOString()
     });
     
-    if (error instanceof Stripe.StripeError) {
+    if (error instanceof Stripe.errors.StripeError) {
       const stripeError = StripeErrorHandler.handleStripeError(error);
       return NextResponse.json(
         { error: stripeError.message, code: stripeError.code },
@@ -468,7 +468,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Hämta aktuell status från Stripe
-    const paymentIntent = await PaymentIntentManager.stripe.paymentIntents.retrieve(paymentIntentId);
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
     return NextResponse.json({
       success: true,
@@ -497,7 +497,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString()
     });
     
-    if (error instanceof Stripe.StripeError) {
+    if (error instanceof Stripe.errors.StripeError) {
       const stripeError = StripeErrorHandler.handleStripeError(error);
       return NextResponse.json(
         { error: stripeError.message, code: stripeError.code },

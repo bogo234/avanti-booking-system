@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { getAdminDb } from '../../../../lib/firebase-admin';
-import { 
-  stripe, 
+import stripe, { 
   getWebhookSecret, 
   StripeConfig,
   StripeErrorHandler 
@@ -222,15 +221,21 @@ async function handlePaymentSucceeded(
     };
 
     // Add payment details if available
-    if (paymentIntent.charges?.data?.length > 0) {
-      const charge = paymentIntent.charges.data[0];
-      updateData['paymentDetails'] = {
-        chargeId: charge.id,
-        paymentMethodType: charge.payment_method_details?.type,
-        last4: charge.payment_method_details?.card?.last4,
-        brand: charge.payment_method_details?.card?.brand,
-        receiptUrl: charge.receipt_url
-      };
+    if ((paymentIntent as any).charges?.data?.length > 0 || paymentIntent.latest_charge) {
+      try {
+        const charge = paymentIntent.latest_charge
+          ? await stripe.charges.retrieve(paymentIntent.latest_charge as string)
+          : (paymentIntent as any).charges.data[0];
+        updateData['paymentDetails'] = {
+          chargeId: charge.id,
+          paymentMethodType: charge.payment_method_details?.type,
+          last4: charge.payment_method_details?.card?.last4,
+          brand: charge.payment_method_details?.card?.brand,
+          receiptUrl: charge.receipt_url
+        };
+      } catch (chargeError) {
+        console.warn('Failed to retrieve latest charge details:', chargeError);
+      }
     }
 
     await bookingRef.update(updateData);

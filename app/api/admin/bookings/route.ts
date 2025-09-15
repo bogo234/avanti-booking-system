@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb, verifyAuthToken, getUserRole } from '../../../../lib/firebase-admin';
 import { z } from 'zod';
+import type { Query } from 'firebase-admin/firestore';
 
 // Validation schemas
 const BookingSearchSchema = z.object({
@@ -49,6 +50,22 @@ function checkAdminBookingActionRateLimit(uid: string): { allowed: boolean; rese
   
   userAttempts.count++;
   return { allowed: true };
+}
+
+// Lightweight view model for admin search results
+interface BookingSearchItem {
+  id: string;
+  customer?: { name?: string; email?: string; phone?: string };
+  pickup?: { address?: string };
+  destination?: { address?: string };
+  driver?: { id?: string; name?: string };
+  status?: string;
+  service?: string;
+  price?: number;
+  createdAt?: any;
+  updatedAt?: any;
+  metadata?: any;
+  [key: string]: any;
 }
 
 // GET - Hämta bokningar med avancerad sökning och filtrering
@@ -110,7 +127,7 @@ export async function GET(request: NextRequest) {
     const db = getAdminDb();
 
     // Bygg Firestore query
-    let bookingsQuery = db.collection('bookings');
+    let bookingsQuery: Query = db.collection('bookings');
 
     // Filtrera på status
     if (status) {
@@ -149,12 +166,15 @@ export async function GET(request: NextRequest) {
 
     // Hämta data
     const snapshot = await bookingsQuery.get();
-    let bookings = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || doc.data().createdAt,
-      updatedAt: doc.data().metadata?.updatedAt?.toDate?.()?.toISOString() || doc.data().metadata?.updatedAt
-    }));
+    let bookings: BookingSearchItem[] = snapshot.docs.map(doc => {
+      const data = doc.data() as any;
+      return {
+        id: doc.id,
+        ...data,
+        createdAt: data?.createdAt?.toDate?.()?.toISOString() || data?.createdAt,
+        updatedAt: data?.metadata?.updatedAt?.toDate?.()?.toISOString() || data?.metadata?.updatedAt
+      } as BookingSearchItem;
+    });
 
     // Textfiltrering (söker i adresser, kundnamn, etc.)
     if (query) {
@@ -184,10 +204,13 @@ export async function GET(request: NextRequest) {
     const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
     const allBookingsQuery = await db.collection('bookings').get();
-    const allBookings = allBookingsQuery.docs.map(doc => ({
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate?.() || new Date(doc.data().createdAt)
-    }));
+    const allBookings: BookingSearchItem[] = allBookingsQuery.docs.map(doc => {
+      const data = doc.data() as any;
+      return {
+        ...data,
+        createdAt: data?.createdAt?.toDate?.() || new Date(data?.createdAt)
+      } as BookingSearchItem;
+    });
 
     const statistics = {
       total: allBookings.length,

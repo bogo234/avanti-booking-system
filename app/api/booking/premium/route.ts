@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuthToken, getAdminDb, getUserRole } from '../../../../lib/firebase-admin';
 import { googleMapsClient } from '../../../../lib/google-maps-enhanced';
+import type { Coordinates } from '../../../../lib/google-maps-enhanced';
 import { PriceCalculator } from '../../../../lib/stripe-enhanced';
 import { z } from 'zod';
 
@@ -159,25 +160,28 @@ export async function POST(request: NextRequest) {
     }
 
     // Geocode adresser om koordinater saknas
-    const pickupCoords = bookingData.pickup.coordinates || 
+    const pickupCoordsMaybe = bookingData.pickup.coordinates || 
       (await googleMapsClient.geocodeAddress(bookingData.pickup.address)).address?.coordinates;
     
-    const destinationCoords = bookingData.destination.coordinates ||
+    const destinationCoordsMaybe = bookingData.destination.coordinates ||
       (await googleMapsClient.geocodeAddress(bookingData.destination.address)).address?.coordinates;
 
-    if (!pickupCoords || !destinationCoords) {
+    if (!pickupCoordsMaybe || !destinationCoordsMaybe || pickupCoordsMaybe.lat === undefined || pickupCoordsMaybe.lng === undefined || destinationCoordsMaybe.lat === undefined || destinationCoordsMaybe.lng === undefined) {
       return NextResponse.json(
         { error: 'Could not geocode pickup or destination address' },
         { status: 400 }
       );
     }
 
+    const pickupCoords: Coordinates = { lat: pickupCoordsMaybe.lat, lng: pickupCoordsMaybe.lng };
+    const destinationCoords: Coordinates = { lat: destinationCoordsMaybe.lat, lng: destinationCoordsMaybe.lng };
+
     // Beräkna rutt och avstånd
     const directionsResult = await googleMapsClient.getDirections(
       pickupCoords,
       destinationCoords,
       {
-        waypoints: bookingData.waypoints?.map(wp => wp.coordinates || wp.address),
+        waypoints: bookingData.waypoints?.map(wp => wp.coordinates ? ({ lat: wp.coordinates.lat, lng: wp.coordinates.lng } as Coordinates) : wp.address),
         travelMode: 'driving',
         departureTime: pickupTime,
         trafficModel: 'best_guess'

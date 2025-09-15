@@ -359,5 +359,3 @@ export type {
   PasswordStrength,
   SessionInfo,
 };
-
-export { AuthApiError, RateLimitError };

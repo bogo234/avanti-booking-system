@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb, verifyAuthToken } from '../../../lib/firebase-admin';
 import { z } from 'zod';
+import type { Query } from 'firebase-admin/firestore';
 
 // Validation schemas
 const NotificationQuerySchema = z.object({
@@ -93,7 +94,7 @@ export async function GET(request: NextRequest) {
     const db = getAdminDb();
 
     // Bygg Firestore query
-    let notificationsQuery = db.collection('notifications')
+    let notificationsQuery: Query = db.collection('notifications')
       .where('userId', '==', decodedToken.uid);
 
     // Filtrera på typ
@@ -421,7 +422,7 @@ export async function DELETE(request: NextRequest) {
     const db = getAdminDb();
 
     // Bygg query
-    let deleteQuery = db.collection('notifications')
+    let deleteQuery: Query = db.collection('notifications')
       .where('userId', '==', decodedToken.uid);
 
     if (readOnly) {
