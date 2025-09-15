@@ -337,7 +337,7 @@ class RealtimeClient {
     }
   }
 
-  private emit(event: string, data: any): void {
+  protected emit(event: string, data: any): void {
     const listeners = this.listeners.get(event);
     if (listeners) {
       listeners.forEach(callback => callback(data));

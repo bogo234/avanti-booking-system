@@ -692,7 +692,8 @@ class AdvancedAIEngine {
   private calculatePredictionConfidence(features: any, historicalDemand: any[]): number {
     // Calculate confidence based on data quality and quantity
     const dataQuality = historicalDemand.length > 100 ? 0.9 : historicalDemand.length / 100;
-    const featureCompleteness = Object.values(features).filter(v => v > 0).length / Object.keys(features).length;
+    const featureValues = Object.values(features) as Array<number>;
+    const featureCompleteness = featureValues.filter((v) => (typeof v === 'number' ? v : 0) > 0).length / featureValues.length;
     
     return Math.min(0.95, dataQuality * featureCompleteness);
   }

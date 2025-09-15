@@ -6,38 +6,42 @@ interface Coordinates {
 }
 
 /**
- * Google Maps Geocoding API integration - PRODUCTION ONLY
- * This function requires Google Maps API to be loaded and will throw errors if not available
+ * Google Maps Geocoding via official REST API (locked)
+ * - Uses NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+ * - Swedish language/region and country restriction
  */
 export async function geocodeAddress(address: string): Promise<Coordinates> {
   if (typeof window === 'undefined') {
     throw new Error('Geocoding can only be performed in browser environment');
   }
-  
-  if (!(window as any).google?.maps) {
-    throw new Error('Google Maps API is not loaded. Please ensure Google Maps JavaScript API is properly initialized.');
+
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  if (!apiKey) {
+    throw new Error('Google Maps API key is missing. Set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in .env.local');
   }
-  
-  const geocoder = new (window as any).google.maps.Geocoder();
-  
-  return new Promise((resolve, reject) => {
-    geocoder.geocode(
-      { 
-        address: address,
-        componentRestrictions: { country: 'SE' }
-      },
-      (results: any[], status: string) => {
-        if (status === 'OK' && results[0]?.geometry?.location) {
-          resolve({
-            lat: results[0].geometry.location.lat(),
-            lng: results[0].geometry.location.lng()
-          });
-        } else {
-          reject(new Error(`Geocoding failed for address "${address}". Status: ${status}`));
-        }
-      }
-    );
+
+  const params = new URLSearchParams({
+    address,
+    key: apiKey,
+    language: 'sv',
+    region: 'SE',
+    components: 'country:SE',
   });
+
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?${params.toString()}`;
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Geocoding REST request failed with status ${response.status}`);
+  }
+
+  const data: any = await response.json();
+  if (data.status === 'OK' && data.results?.[0]?.geometry?.location) {
+    const loc = data.results[0].geometry.location;
+    return { lat: loc.lat, lng: loc.lng };
+  }
+
+  throw new Error(`Geocoding REST failed for address "${address}". Status: ${data.status}`);
 }
 
 /**

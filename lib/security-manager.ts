@@ -115,25 +115,28 @@ class AdvancedSecurityManager {
   // Encryption and Decryption
   encrypt(data: string): { encrypted: string; iv: string; tag: string } {
     const iv = crypto.randomBytes(this.config.encryption.ivLength);
-    const cipher = crypto.createCipher(this.config.encryption.algorithm, this.encryptionKey);
-    cipher.setAAD(Buffer.from('avanti-booking-system'));
+    const cipher = crypto.createCipheriv(this.config.encryption.algorithm, this.encryptionKey, iv);
+    (cipher as any).setAAD?.(Buffer.from('avanti-booking-system'));
 
     let encrypted = cipher.update(data, 'utf8', 'hex');
     encrypted += cipher.final('hex');
 
-    const tag = cipher.getAuthTag();
+    const tag = (cipher as any).getAuthTag?.() as Buffer | undefined;
 
     return {
       encrypted,
       iv: iv.toString('hex'),
-      tag: tag.toString('hex')
+      tag: (tag ? tag.toString('hex') : '')
     };
   }
 
   decrypt(encryptedData: { encrypted: string; iv: string; tag: string }): string {
-    const decipher = crypto.createDecipher(this.config.encryption.algorithm, this.encryptionKey);
-    decipher.setAAD(Buffer.from('avanti-booking-system'));
-    decipher.setAuthTag(Buffer.from(encryptedData.tag, 'hex'));
+    const iv = Buffer.from(encryptedData.iv, 'hex');
+    const decipher = crypto.createDecipheriv(this.config.encryption.algorithm, this.encryptionKey, iv);
+    (decipher as any).setAAD?.(Buffer.from('avanti-booking-system'));
+    if (encryptedData.tag) {
+      (decipher as any).setAuthTag?.(Buffer.from(encryptedData.tag, 'hex'));
+    }
 
     let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
     decrypted += decipher.final('utf8');

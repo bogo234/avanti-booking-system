@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { CheckCircle } from 'lucide-react';
 
-export default function PaymentSuccessPage() {
+function PaymentSuccessInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [bookingId, setBookingId] = useState<string>('');
@@ -211,5 +211,13 @@ export default function PaymentSuccessPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function PaymentSuccessPage() {
+  return (
+    <Suspense fallback={<div />}> 
+      <PaymentSuccessInner />
+    </Suspense>
   );
 }

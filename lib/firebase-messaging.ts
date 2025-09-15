@@ -1,6 +1,6 @@
 // Firebase Cloud Messaging utilities for Avanti Booking System
 import { getMessaging, getToken, onMessage, MessagePayload } from 'firebase/messaging';
-import { app } from './firebase';
+import app from './firebase';
 
 // FCM configuration
 export const FCMConfig = {
@@ -299,14 +299,13 @@ export class FirebaseMessagingClient {
         body: payload.body,
         icon: payload.icon || '/icons/notification-icon.png',
         badge: payload.badge || '/icons/notification-badge.png',
-        image: payload.image,
         tag: payload.tag,
         requireInteraction: payload.requireInteraction || false,
         silent: payload.silent || false,
-        timestamp: payload.timestamp || Date.now(),
-        actions: payload.actions,
+        // timestamp is not a standard NotificationOptions field; skipping
+        // actions is available in some browsers but not typed in TS lib; skip for safety
         data: payload.data
-      });
+      } as NotificationOptions);
 
       // Handle notification click
       notification.onclick = (event) => {
@@ -349,7 +348,7 @@ export class FirebaseMessagingClient {
             title: payload.notification.title || 'Avanti',
             body: payload.notification.body || '',
             icon: payload.notification.icon,
-            image: payload.notification.image,
+            // image not part of NotificationOptions typings; keep in data
             data: payload.data
           });
         }

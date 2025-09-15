@@ -2,7 +2,6 @@ import Stripe from 'stripe';
 
 // Initialize Stripe with enhanced configuration
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
   typescript: true,
   appInfo: {
     name: 'Avanti Booking System',
@@ -179,7 +178,7 @@ export class StripeCustomerManager {
       name?: string;
       email?: string;
       phone?: string;
-      address?: Stripe.CustomerUpdateParams.Address;
+      address?: any;
     }
   ): Promise<Stripe.Customer> {
     try {
@@ -334,50 +333,46 @@ export class RefundManager {
 
 // Error handling utilities
 export class StripeErrorHandler {
-  static handleStripeError(error: Stripe.StripeError): { message: string; code: string; statusCode: number } {
-    switch (error.type) {
+  static handleStripeError(error: any): { message: string; code: string; statusCode: number } {
+    const err = error as any;
+    const type = err?.type || 'api_error';
+    switch (type) {
       case 'card_error':
         return {
           message: 'Ditt kort avvisades. Kontrollera kortuppgifterna och försök igen.',
-          code: error.code || 'card_declined',
+          code: err.code || 'card_declined',
           statusCode: 402
         };
-      
       case 'rate_limit_error':
         return {
           message: 'För många förfrågningar. Vänta en stund och försök igen.',
           code: 'rate_limit_exceeded',
           statusCode: 429
         };
-      
       case 'invalid_request_error':
         return {
           message: 'Ogiltig förfrågan. Kontakta support om problemet kvarstår.',
-          code: error.code || 'invalid_request',
+          code: err.code || 'invalid_request',
           statusCode: 400
         };
-      
       case 'api_error':
         return {
           message: 'Ett tekniskt fel uppstod. Försök igen senare.',
           code: 'api_error',
           statusCode: 500
         };
-      
       case 'connection_error':
         return {
           message: 'Anslutningsfel. Kontrollera din internetanslutning.',
           code: 'connection_error',
           statusCode: 503
         };
-      
       case 'authentication_error':
         return {
           message: 'Autentiseringsfel. Kontakta support.',
           code: 'authentication_error',
           statusCode: 401
         };
-      
       default:
         return {
           message: 'Ett oväntat fel uppstod. Försök igen senare.',

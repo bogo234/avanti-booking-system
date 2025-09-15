@@ -949,8 +949,8 @@ class AdvancedAnalyticsEngine {
     // Send to Google Analytics, Mixpanel, etc.
     try {
       // Example: Google Analytics 4
-      if (typeof gtag !== 'undefined') {
-        gtag('event', event.action, {
+      if (typeof window !== 'undefined' && typeof (window as any).gtag !== 'undefined') {
+        (window as any).gtag('event', event.action, {
           event_category: event.category,
           event_label: event.label,
           value: event.value

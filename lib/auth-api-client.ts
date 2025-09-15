@@ -351,11 +351,3 @@ class AuthApiClient {
 
 // Export singleton instance
 export const authApiClient = new AuthApiClient();
-
-// Export types for use in components
-export type {
-  ApiResponse,
-  UserProfileData,
-  PasswordStrength,
-  SessionInfo,
-};

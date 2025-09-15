@@ -437,12 +437,4 @@ class DriverApiClient {
 // Export singleton instance
 export const driverApiClient = new DriverApiClient();
 
-// Export types for use in components
-export type {
-  DriverStatus,
-  DriverStatistics,
-  BookingForDriver,
-  LocationUpdate,
-};
-
 export { AuthApiError, RateLimitError };

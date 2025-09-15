@@ -657,9 +657,10 @@ class AdvancedPerformanceMonitor {
         const observer = new PerformanceObserver((list) => {
           for (const entry of list.getEntries()) {
             if (entry.entryType === 'navigation') {
+              const nav = entry as PerformanceNavigationTiming;
               this.recordMetric({
                 name: 'page_load_time',
-                value: entry.loadEventEnd - entry.loadEventStart,
+                value: (nav.loadEventEnd || 0) - (nav.loadEventStart || 0),
                 unit: 'ms',
                 category: MetricCategory.USER_EXPERIENCE
               });

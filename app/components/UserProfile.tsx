@@ -526,7 +526,7 @@ export default function UserProfileComponent({
                         )}
                       </div>
                     </>
-                  )}
+                  ) : null}
                 </div>
               )}
             </div>

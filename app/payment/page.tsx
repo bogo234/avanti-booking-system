@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { loadStripe } from '@stripe/stripe-js';
 import type { PaymentRequest as StripePaymentRequest } from '@stripe/stripe-js';
@@ -304,8 +304,9 @@ function PaymentForm({ bookingDetails, selectedMethod }: { bookingDetails: Booki
           <h2>Betalning</h2>
           <form onSubmit={handleSubmit}>
             <div className="card-element-container">
-              <label>Kortuppgifter</label>
+              <label htmlFor="card-element">Kortuppgifter</label>
               <CardElement
+                id="card-element"
                 options={{
                   style: {
                     base: {
@@ -586,7 +587,7 @@ function PaymentForm({ bookingDetails, selectedMethod }: { bookingDetails: Booki
   );
 }
 
-export default function PaymentPage() {
+function PaymentPageInner() {
   const [bookingDetails, setBookingDetails] = useState<BookingDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -619,13 +620,19 @@ export default function PaymentPage() {
           throw new Error('Booking not found');
         }
 
+        const pickupAddress = (booking as any)?.pickup?.address ?? '';
+        const pickupTime = (booking as any)?.pickup?.time ?? new Date().toISOString();
+        const destinationAddress = (booking as any)?.destination?.address ?? '';
+        const price = typeof (booking as any)?.price === 'number' ? (booking as any).price : 0;
+        const service = (booking as any)?.service || 'Avanti Biltransport';
+
         setBookingDetails({
           id: bookingId,
-          pickupLocation: booking.pickup.address,
-          destination: booking.destination.address,
-          pickupTime: booking.pickup.time,
-          price: booking.price,
-          service: 'Avanti Biltransport'
+          pickupLocation: pickupAddress,
+          destination: destinationAddress,
+          pickupTime: pickupTime,
+          price: price,
+          service
         });
         setError(''); // Clear any previous errors
         setLoading(false);
@@ -834,5 +841,13 @@ export default function PaymentPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function PaymentPage() {
+  return (
+    <Suspense fallback={<div />}> 
+      <PaymentPageInner />
+    </Suspense>
   );
 }

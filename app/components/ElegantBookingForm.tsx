@@ -325,8 +325,9 @@ export default function ElegantBookingForm({ onBookingSubmit, isLoading = false 
         {/* Details Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-2">Hämtningstid</label>
+            <label htmlFor="pickup-time" className="block text-sm font-medium text-stone-700 mb-2">Hämtningstid</label>
             <select
+              id="pickup-time"
               value={pickupDateTime}
               onChange={(e) => setPickupDateTime(e.target.value)}
               className="w-full px-4 py-3 border border-stone-200 rounded-xl focus:ring-2 focus:ring-stone-900 focus:border-transparent transition-all"
@@ -341,8 +342,9 @@ export default function ElegantBookingForm({ onBookingSubmit, isLoading = false 
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-2">Registreringsnummer</label>
+            <label htmlFor="license-plate" className="block text-sm font-medium text-stone-700 mb-2">Registreringsnummer</label>
             <input
+              id="license-plate"
               type="text"
               value={licensePlate}
               onChange={(e) => setLicensePlate(e.target.value.toUpperCase())}

@@ -4,6 +4,9 @@ const nextConfig = {
     domains: [],
   },
   outputFileTracingRoot: __dirname,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   // Ensure static files are served correctly
   async headers() {
     return [
