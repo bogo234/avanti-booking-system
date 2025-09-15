@@ -10,6 +10,7 @@ import {
   updateDoc,
   deleteDoc,
   addDoc,
+  getDoc,
   serverTimestamp
 } from 'firebase/firestore';
 import { db, collections } from '../lib/firebase';
@@ -241,6 +242,21 @@ export const firebaseOperations = {
       await deleteDoc(docRef);
     } catch (error) {
       console.error(`Error deleting ${collectionName}:`, error);
+      throw error;
+    }
+  },
+
+  // Get by ID
+  getById: async (collectionName: keyof typeof collections, docId: string) => {
+    try {
+      const docRef = doc(db, collections[collectionName], docId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return { id: docSnap.id, ...docSnap.data() };
+      }
+      return null;
+    } catch (error) {
+      console.error(`Error getting ${collectionName} by ID:`, error);
       throw error;
     }
   }

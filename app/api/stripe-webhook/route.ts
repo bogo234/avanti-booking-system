@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateDoc, doc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
+import { createNotification } from '../../../lib/firebase';
 import { stripe, getWebhookSecret } from '../../../lib/stripe';
 import Stripe from 'stripe';
 
@@ -26,6 +27,40 @@ export async function POST(request: NextRequest) {
 
     // Handle the event
     switch (event.type) {
+      case 'checkout.session.completed':
+        const session = event.data.object as Stripe.Checkout.Session;
+        try {
+          const bookingIdFromMeta = (session.metadata?.bookingId as string) || undefined;
+          const bookingIdFromRef = (session.client_reference_id as string) || undefined;
+          const bookingId = bookingIdFromMeta || bookingIdFromRef;
+          const paymentIntentId = typeof session.payment_intent === 'string'
+            ? session.payment_intent
+            : session.payment_intent?.id;
+
+          if (bookingId) {
+            const bookingRef = doc(db, 'bookings', bookingId);
+            await updateDoc(bookingRef, {
+              paymentStatus: 'paid',
+              paymentId: paymentIntentId || null,
+              paidAt: new Date(),
+              updatedAt: new Date(),
+            });
+            console.log(`Checkout session completed for booking ${bookingId}`);
+
+            // Notification
+            await createNotification({
+              type: 'booking',
+              message: `Betalning mottagen för bokning #${bookingId.slice(-8)}`,
+              bookingId,
+            });
+          } else {
+            console.error('checkout.session.completed without bookingId');
+          }
+        } catch (err) {
+          console.error('Error handling checkout.session.completed:', err);
+        }
+        break;
+
       case 'payment_intent.succeeded':
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
         await handlePaymentSuccess(paymentIntent);
@@ -74,6 +109,13 @@ async function handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent) {
     });
 
     console.log(`Payment succeeded for booking ${bookingId}`);
+
+    // Notification
+    await createNotification({
+      type: 'booking',
+      message: `Betalning mottagen för bokning #${bookingId.slice(-8)}`,
+      bookingId,
+    });
   } catch (error) {
     console.error('Error handling payment success:', error);
   }
@@ -97,6 +139,12 @@ async function handlePaymentFailure(paymentIntent: Stripe.PaymentIntent) {
     });
 
     console.log(`Payment failed for booking ${bookingId}`);
+
+    await createNotification({
+      type: 'booking',
+      message: `Betalning misslyckades för bokning #${bookingId.slice(-8)}`,
+      bookingId,
+    });
   } catch (error) {
     console.error('Error handling payment failure:', error);
   }
@@ -119,6 +167,12 @@ async function handlePaymentCanceled(paymentIntent: Stripe.PaymentIntent) {
     });
 
     console.log(`Payment canceled for booking ${bookingId}`);
+
+    await createNotification({
+      type: 'booking',
+      message: `Betalning avbröts för bokning #${bookingId.slice(-8)}`,
+      bookingId,
+    });
   } catch (error) {
     console.error('Error handling payment cancellation:', error);
   }

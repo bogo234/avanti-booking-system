@@ -135,6 +135,7 @@ export interface BookingRequest {
   emergencyContact?: EmergencyContact;
   termsAccepted?: boolean;
   privacyAccepted?: boolean;
+  estimatedPrice?: number;
 }
 
 export interface BookingResponse {

@@ -175,7 +175,7 @@ export default function Home() {
       setIsMenuOpen(true);
       // Start domino animation for menu sections (fällkniv-effekt)
       const menuItems = [
-        'hem', 'booking', 'driver', 'customer', 'faq', 
+        'hem', 'driver', 'customer', 'faq', 
         'integritet', 'kakor', 'kontakt', 'om-oss', 'tjanster', 'villkor'
       ];
       if (!user) menuItems.push('auth'); // Add login button if not logged in
@@ -544,39 +544,8 @@ export default function Home() {
             </div>
             <div className={`menu-section ${menuSectionsVisible[1] ? 'visible' : ''}`}>
               <Link 
-                href="/booking" 
-                className={`menu-item ${menuItemsVisible[1] ? 'visible' : ''}`}
-                style={{
-                display: 'block',
-                padding: '1rem 1.25rem',
-                color: 'rgba(255, 255, 255, 0.85)',
-                textDecoration: 'none',
-                fontSize: '0.875rem',
-                fontWeight: '400',
-                letterSpacing: '0.025em',
-                transition: 'all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
-                position: 'relative'
-              }}
-              onClick={() => setIsMenuOpen(false)}
-              onMouseEnter={(e) => {
-                (e.target as HTMLElement).style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
-                (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 1)';
-                (e.target as HTMLElement).style.paddingLeft = '1.75rem';
-              }}
-              onMouseLeave={(e) => {
-                (e.target as HTMLElement).style.backgroundColor = 'transparent';
-                (e.target as HTMLElement).style.color = 'rgba(255, 255, 255, 0.85)';
-                (e.target as HTMLElement).style.paddingLeft = '1.5rem';
-              }}
-              >
-                Boka resa
-              </Link>
-            </div>
-            <div className={`menu-section ${menuSectionsVisible[2] ? 'visible' : ''}`}>
-              <Link 
                 href="/driver" 
-                className={`menu-item ${menuItemsVisible[2] ? 'visible' : ''}`}
+                className={`menu-item ${menuItemsVisible[1] ? 'visible' : ''}`}
                 style={{
                 display: 'block',
                 padding: '1rem 1.25rem',
@@ -604,10 +573,10 @@ export default function Home() {
                 Förare
               </Link>
             </div>
-            <div className={`menu-section ${menuSectionsVisible[3] ? 'visible' : ''}`}>
+            <div className={`menu-section ${menuSectionsVisible[2] ? 'visible' : ''}`}>
               <Link 
                 href="/customer" 
-                className={`menu-item ${menuItemsVisible[3] ? 'visible' : ''}`}
+                className={`menu-item ${menuItemsVisible[2] ? 'visible' : ''}`}
                 style={{
                 display: 'block',
                 padding: '1rem 1.25rem',
@@ -636,10 +605,10 @@ export default function Home() {
               </Link>
             </div>
             {!user && (
-              <div className={`menu-section ${menuSectionsVisible[4] ? 'visible' : ''}`}>
+              <div className={`menu-section ${menuSectionsVisible[3] ? 'visible' : ''}`}>
                 <Link 
                   href="/auth" 
-                  className={`menu-item ${menuItemsVisible[4] ? 'visible' : ''}`}
+                  className={`menu-item ${menuItemsVisible[3] ? 'visible' : ''}`}
                   style={{
                   display: 'block',
                   padding: '1rem 1.25rem',
@@ -668,10 +637,10 @@ export default function Home() {
                 </Link>
               </div>
             )}
-            <div className={`menu-section ${menuSectionsVisible[5] ? 'visible' : ''}`}>
+            <div className={`menu-section ${menuSectionsVisible[4] ? 'visible' : ''}`}>
               <Link 
                 href="/faq" 
-                className={`menu-item ${menuItemsVisible[5] ? 'visible' : ''}`}
+                className={`menu-item ${menuItemsVisible[4] ? 'visible' : ''}`}
                 style={{
                 display: 'block',
                 padding: '1rem 1.25rem',
@@ -699,10 +668,10 @@ export default function Home() {
                 FAQ
               </Link>
             </div>
-            <div className={`menu-section ${menuSectionsVisible[6] ? 'visible' : ''}`}>
+            <div className={`menu-section ${menuSectionsVisible[5] ? 'visible' : ''}`}>
               <Link 
                 href="/integritet" 
-                className={`menu-item ${menuItemsVisible[6] ? 'visible' : ''}`}
+                className={`menu-item ${menuItemsVisible[5] ? 'visible' : ''}`}
                 style={{
                 display: 'block',
                 padding: '1rem 1.25rem',
@@ -730,10 +699,10 @@ export default function Home() {
                 Integritet
               </Link>
             </div>
-            <div className={`menu-section ${menuSectionsVisible[7] ? 'visible' : ''}`}>
+            <div className={`menu-section ${menuSectionsVisible[6] ? 'visible' : ''}`}>
               <Link 
                 href="/kakor" 
-                className={`menu-item ${menuItemsVisible[7] ? 'visible' : ''}`}
+                className={`menu-item ${menuItemsVisible[6] ? 'visible' : ''}`}
                 style={{
                 display: 'block',
                 padding: '1rem 1.25rem',
@@ -761,10 +730,10 @@ export default function Home() {
                 Kakor
               </Link>
             </div>
-            <div className={`menu-section ${menuSectionsVisible[8] ? 'visible' : ''}`}>
+            <div className={`menu-section ${menuSectionsVisible[7] ? 'visible' : ''}`}>
               <Link 
                 href="/kontakt" 
-                className={`menu-item ${menuItemsVisible[8] ? 'visible' : ''}`}
+                className={`menu-item ${menuItemsVisible[7] ? 'visible' : ''}`}
                 style={{
                 display: 'block',
                 padding: '1rem 1.25rem',
@@ -792,10 +761,10 @@ export default function Home() {
                 Kontakt
               </Link>
             </div>
-            <div className={`menu-section ${menuSectionsVisible[9] ? 'visible' : ''}`}>
+            <div className={`menu-section ${menuSectionsVisible[8] ? 'visible' : ''}`}>
               <Link 
                 href="/om-oss" 
-                className={`menu-item ${menuItemsVisible[9] ? 'visible' : ''}`}
+                className={`menu-item ${menuItemsVisible[8] ? 'visible' : ''}`}
                 style={{
                 display: 'block',
                 padding: '1rem 1.25rem',
@@ -823,10 +792,10 @@ export default function Home() {
                 Om oss
               </Link>
             </div>
-            <div className={`menu-section ${menuSectionsVisible[10] ? 'visible' : ''}`}>
+            <div className={`menu-section ${menuSectionsVisible[9] ? 'visible' : ''}`}>
               <Link 
                 href="/tjanster" 
-                className={`menu-item ${menuItemsVisible[10] ? 'visible' : ''}`}
+                className={`menu-item ${menuItemsVisible[9] ? 'visible' : ''}`}
                 style={{
                 display: 'block',
                 padding: '1rem 1.25rem',
@@ -854,10 +823,10 @@ export default function Home() {
                 Tjänster
               </Link>
             </div>
-            <div className={`menu-section ${menuSectionsVisible[11] ? 'visible' : ''}`}>
+            <div className={`menu-section ${menuSectionsVisible[10] ? 'visible' : ''}`}>
               <Link 
                 href="/villkor" 
-                className={`menu-item ${menuItemsVisible[11] ? 'visible' : ''}`}
+                className={`menu-item ${menuItemsVisible[10] ? 'visible' : ''}`}
                 style={{
                 display: 'block',
                 padding: '1rem 1.25rem',
@@ -886,10 +855,10 @@ export default function Home() {
               </Link>
             </div>
             {user && userRole === 'admin' && (
-              <div className={`menu-section ${menuSectionsVisible[11] ? 'visible' : ''}`}>
+              <div className={`menu-section ${menuSectionsVisible[10] ? 'visible' : ''}`}>
                 <Link 
                   href="/admin" 
-                  className={`menu-item ${menuItemsVisible[11] ? 'visible' : ''}`}
+                  className={`menu-item ${menuItemsVisible[10] ? 'visible' : ''}`}
                   style={{
                   display: 'block',
                   padding: '1rem 1.25rem',

@@ -3,10 +3,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
 
+interface PlaceDetails {
+  address: string;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
+}
+
 interface GooglePlacesAutocompleteProps {
   placeholder: string;
   value: string;
-  onChange: (value: string) => void;
+  onChange: (value: string, details?: PlaceDetails) => void;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -46,7 +54,14 @@ export default function GooglePlacesAutocomplete({
           autocompleteRef.current.addListener('place_changed', () => {
             const place = autocompleteRef.current?.getPlace();
             if (place?.formatted_address) {
-              onChange(place.formatted_address);
+              const placeDetails: PlaceDetails = {
+                address: place.formatted_address,
+                coordinates: place.geometry?.location ? {
+                  lat: place.geometry.location.lat(),
+                  lng: place.geometry.location.lng()
+                } : undefined
+              };
+              onChange(place.formatted_address, placeDetails);
             }
           });
 
@@ -54,7 +69,7 @@ export default function GooglePlacesAutocomplete({
         }
       } catch (err: any) {
         console.error('Google Maps API Error:', err);
-        setError('Google Maps API kunde inte laddas. Kontrollera att Places API är aktiverat.');
+        setError('Google Maps API kunde inte laddas. Kontrollera din internetanslutning och att Places API är aktiverat.');
         setIsLoaded(false);
       }
     };
@@ -74,7 +89,7 @@ export default function GooglePlacesAutocomplete({
         ref={inputRef}
         type="text"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => onChange(e.target.value, { address: e.target.value })}
         placeholder={placeholder}
         className={className}
         style={style}

@@ -44,10 +44,12 @@ function PaymentForm({
 
     try {
       // Create payment intent
+      const idToken = await (await import('../../lib/firebase')).auth.currentUser?.getIdToken(true).catch(() => null);
       const response = await fetch('/api/create-payment-intent', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
         },
         body: JSON.stringify({
           amount,
@@ -56,7 +58,11 @@ function PaymentForm({
         }),
       });
 
-      const { clientSecret, error: apiError } = await response.json();
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create payment intent');
+      }
+      const { clientSecret, error: apiError } = result;
 
       if (apiError) {
         throw new Error(apiError);
@@ -81,10 +87,12 @@ function PaymentForm({
 
       if (paymentIntent.status === 'succeeded') {
         // Confirm payment on our backend
+        const confirmIdToken = await (await import('../../lib/firebase')).auth.currentUser?.getIdToken(true).catch(() => null);
         const confirmResponse = await fetch('/api/confirm-payment', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            ...(confirmIdToken ? { Authorization: `Bearer ${confirmIdToken}` } : {}),
           },
           body: JSON.stringify({
             paymentIntentId: paymentIntent.id,

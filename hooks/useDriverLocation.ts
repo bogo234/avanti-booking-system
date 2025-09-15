@@ -27,10 +27,12 @@ export function useDriverLocation({
     setError('');
 
     try {
+      const idToken = await (await import('../lib/firebase')).auth.currentUser?.getIdToken(true).catch(() => null);
       const response = await fetch('/api/update-driver-location', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
         },
         body: JSON.stringify({
           driverId,

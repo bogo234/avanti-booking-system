@@ -51,7 +51,8 @@ export default function PremiumBooking() {
     // Simulate booking process
     setTimeout(() => {
       setIsBooking(false);
-      // TODO: Navigate to tracking
+      // Navigate to tracking page after booking is confirmed
+      window.location.href = `/tracking?bookingId=${Date.now()}`;
     }, 2000);
   };
 

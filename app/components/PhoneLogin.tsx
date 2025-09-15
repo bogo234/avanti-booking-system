@@ -86,47 +86,33 @@ export default function PhoneLogin({ onSuccess, className }: PhoneLoginProps) {
     setLoading('send');
     setDebugInfo('Skickar SMS-kod...');
     
-    // Debug logging
-    console.log('🚀 sendCode startar...');
-    console.log('📱 Telefonnummer:', phone);
-    
     try {
       if (!auth) {
-        console.error('❌ Firebase Auth inte tillgänglig');
         throw new Error('Firebase Auth inte tillgänglig');
       }
       
-      console.log('✅ Firebase Auth tillgänglig:', auth);
       setDebugInfo('Kontrollerar Firebase-konfiguration...');
       
       const app = auth.app;
       if (!app) {
-        console.error('❌ auth.app är null');
         throw new Error('Firebase App inte tillgänglig');
       }
       
-      console.log('✅ Firebase App tillgänglig:', app);
-      console.log('🔑 App ID:', app.options.appId);
       setDebugInfo(`Firebase App ID: ${app.options.appId}`);
       
       const recaptcha = await ensureRecaptcha();
-      console.log('✅ reCAPTCHA initialiserad:', recaptcha);
       
       const formatted = normalizePhone(phone);
-      console.log('📱 Formaterat telefonnummer:', formatted);
       
       if (!/^\+[1-9][0-9]{6,15}$/.test(formatted)) {
-        console.error('❌ Ogiltigt telefonnummer-format:', formatted);
         setError('Ogiltigt mobilnummer. Ange i internationellt format, t.ex. +46 7x…');
         setDebugInfo('Ogiltigt telefonnummer-format');
         return;
       }
       
       setDebugInfo(`Skickar kod till: ${formatted}`);
-      console.log('📤 Skickar kod till:', formatted);
       
       const result = await signInWithPhoneNumber(auth, formatted, recaptcha);
-      console.log('✅ signInWithPhoneNumber lyckades:', result);
       
       confirmRef.current = result;
       setStep('otp');
@@ -134,9 +120,7 @@ export default function PhoneLogin({ onSuccess, className }: PhoneLoginProps) {
       
     } catch (e: any) {
       const code = e?.code || '';
-      console.error('❌ Fel vid sendCode:', e);
-      console.error('🔍 Felkod:', code);
-      console.error('📝 Felmeddelande:', e?.message);
+      // Error handling for phone authentication
       
       setDebugInfo(`Fel: ${code} - ${e?.message}`);
       

@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useBookingUpdates, useDriverLocationUpdates } from '../../hooks/useFirebaseData';
 
 interface DriverLocation {
   lat: number;
@@ -16,52 +18,49 @@ export default function LiveTracking() {
   const [driver, setDriver] = useState<DriverLocation | null>(null);
   const [isTracking, setIsTracking] = useState(false);
   const [bookingStatus, setBookingStatus] = useState<'searching' | 'found' | 'arriving' | 'completed'>('searching');
+  const searchParams = useSearchParams();
+  const bookingId = searchParams.get('bookingId') || '';
+  const { booking } = useBookingUpdates(bookingId);
+  const { location } = useDriverLocationUpdates(booking?.driver?.id || '');
 
   useEffect(() => {
-    if (isTracking) {
-      const mockDriver: DriverLocation = {
-        lat: 59.3293,
-        lng: 18.0686,
-        name: 'Marcus Andersson',
-        car: 'Volvo XC60 - ABC123',
-        rating: 4.9,
-        eta: 8,
-        phone: '+46 70 123 45 67'
-      };
-      setDriver(mockDriver);
-
-      const interval = setInterval(() => {
-        setDriver(prev => {
-          if (!prev) return null;
-
-          const newEta = Math.max(0, prev.eta - 1);
-
-          if (newEta === 0) {
-            setBookingStatus('completed');
-          } else if (newEta <= 2) {
-            setBookingStatus('arriving');
-          } else {
-            setBookingStatus('found');
-          }
-
-          return {
-            ...prev,
-            eta: newEta
-          };
-        });
-      }, 30000);
-
-      return () => clearInterval(interval);
+    if (!isTracking) return;
+    if (!booking) {
+      setBookingStatus('searching');
+      return;
     }
-  }, [isTracking]);
+
+    switch (booking.status) {
+      case 'driver_assigned':
+      case 'driver_en_route':
+        setBookingStatus('found');
+        break;
+      case 'driver_arrived':
+        setBookingStatus('arriving');
+        break;
+      case 'completed':
+        setBookingStatus('completed');
+        break;
+      default:
+        setBookingStatus('searching');
+    }
+
+    if (location) {
+      setDriver(prev => ({
+        lat: location.lat,
+        lng: location.lng,
+        name: booking?.driver?.name || prev?.name || 'Förare',
+        car: `${booking?.driver?.car || ''} - ${booking?.driver?.licensePlate || ''}`.trim(),
+        rating: 5,
+        eta: prev?.eta ?? 0,
+        phone: booking?.driver?.phone || prev?.phone || ''
+      }));
+    }
+  }, [isTracking, booking, location]);
 
   const startTracking = () => {
     setIsTracking(true);
     setBookingStatus('searching');
-
-    setTimeout(() => {
-      setBookingStatus('found');
-    }, 3000);
   };
 
   const callDriver = () => {

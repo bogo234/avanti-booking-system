@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - Avanti</title>
+    <meta name="theme-color" content="#6366f1">
+    <link rel="icon" href="/favicon.ico">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .offline-container {
+            text-align: center;
+            max-width: 500px;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .offline-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 30px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+        }
+
+        .offline-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            background: linear-gradient(45deg, #fff, #f0f0f0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .offline-subtitle {
+            font-size: 18px;
+            opacity: 0.9;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .offline-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .offline-features {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .features-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .features-list {
+            list-style: none;
+            text-align: left;
+        }
+
+        .features-list li {
+            padding: 10px 0;
+            opacity: 0.9;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .feature-icon {
+            width: 20px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .status-offline {
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+        }
+
+        .status-online {
+            background: rgba(34, 197, 94, 0.9);
+            color: white;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .retry-animation {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 600px) {
+            .offline-container {
+                padding: 30px 20px;
+            }
+            
+            .offline-title {
+                font-size: 28px;
+            }
+            
+            .offline-actions {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status status-offline" id="connectionStatus">
+        <div class="status-indicator"></div>
+        <span id="statusText">Offline</span>
+    </div>
+
+    <div class="offline-container fade-in">
+        <div class="offline-icon">
+            📶
+        </div>
+        
+        <h1 class="offline-title">Du är offline</h1>
+        <p class="offline-subtitle">
+            Ingen internetanslutning hittades. Kontrollera din anslutning och försök igen.
+        </p>
+        
+        <div class="offline-actions">
+            <button class="btn btn-primary" id="retryBtn">
+                🔄 Försök igen
+            </button>
+            <button class="btn btn-secondary" id="cacheBtn">
+                📱 Visa cachad data
+            </button>
+        </div>
+
+        <div class="offline-features">
+            <h3 class="features-title">Tillgängligt offline:</h3>
+            <ul class="features-list">
+                <li>
+                    <div class="feature-icon">📋</div>
+                    Visa tidigare bokningar
+                </li>
+                <li>
+                    <div class="feature-icon">👤</div>
+                    Kontoinformation
+                </li>
+                <li>
+                    <div class="feature-icon">💾</div>
+                    Sparade favoriter
+                </li>
+                <li>
+                    <div class="feature-icon">📞</div>
+                    Kontaktinformation
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Connection status monitoring
+        function updateConnectionStatus() {
+            const statusElement = document.getElementById('connectionStatus');
+            const statusText = document.getElementById('statusText');
+            const retryBtn = document.getElementById('retryBtn');
+            
+            if (navigator.onLine) {
+                statusElement.className = 'connection-status status-online';
+                statusText.textContent = 'Online';
+                retryBtn.textContent = '🏠 Gå till startsidan';
+            } else {
+                statusElement.className = 'connection-status status-offline';
+                statusText.textContent = 'Offline';
+                retryBtn.textContent = '🔄 Försök igen';
+            }
+        }
+
+        // Retry functionality
+        document.getElementById('retryBtn').addEventListener('click', () => {
+            const btn = document.getElementById('retryBtn');
+            
+            if (navigator.onLine) {
+                window.location.href = '/';
+            } else {
+                btn.classList.add('retry-animation');
+                
+                // Check connection after animation
+                setTimeout(() => {
+                    btn.classList.remove('retry-animation');
+                    updateConnectionStatus();
+                    
+                    if (navigator.onLine) {
+                        window.location.href = '/';
+                    }
+                }, 2000);
+            }
+        });
+
+        // Show cached data
+        document.getElementById('cacheBtn').addEventListener('click', () => {
+            // Try to load cached homepage
+            window.location.href = '/?offline=true';
+        });
+
+        // Listen for online/offline events
+        window.addEventListener('online', () => {
+            updateConnectionStatus();
+            
+            // Show success message
+            const container = document.querySelector('.offline-container');
+            const successMsg = document.createElement('div');
+            successMsg.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(34, 197, 94, 0.9);
+                color: white;
+                padding: 12px 24px;
+                border-radius: 12px;
+                font-weight: 600;
+                z-index: 1000;
+                animation: fadeIn 0.3s ease-in;
+            `;
+            successMsg.textContent = '✅ Anslutning återställd!';
+            document.body.appendChild(successMsg);
+            
+            // Auto-redirect after 2 seconds
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 2000);
+        });
+
+        window.addEventListener('offline', updateConnectionStatus);
+
+        // Initialize
+        updateConnectionStatus();
+
+        // Service Worker messaging
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                const { type, data } = event.data;
+                
+                if (type === 'NETWORK_STATUS') {
+                    updateConnectionStatus();
+                }
+            });
+        }
+
+        // Periodic connection check
+        setInterval(() => {
+            updateConnectionStatus();
+        }, 5000);
+
+        // Add some interactive feedback
+        document.querySelectorAll('.btn').forEach(btn => {
+            btn.addEventListener('mouseenter', () => {
+                btn.style.transform = 'translateY(-2px) scale(1.02)';
+            });
+            
+            btn.addEventListener('mouseleave', () => {
+                btn.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+    </script>
+</body>
+</html>

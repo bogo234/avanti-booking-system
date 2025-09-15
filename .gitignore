@@ -2,3 +2,7 @@
 node_modules/
 .next/
 .vercel
+.DS_Store
+.cursor/
+*-firebase-adminsdk-*.json
+service-account*.json

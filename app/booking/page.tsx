@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ModernBookingForm from '../components/ModernBookingForm';
-import StripePaymentModal from '../components/StripePaymentModal';
 import { BookingRequest } from '../types/booking';
 import { firebaseOperations } from '../../hooks/useFirebaseData';
+import { createNotification } from '../../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import '../styles/booking-system.css';
 
@@ -15,8 +15,6 @@ export default function BookingPage() {
   const [bookingId, setBookingId] = useState<string>('');
   const [showBookingStatus, setShowBookingStatus] = useState(false);
   const [bookingData, setBookingData] = useState<any>(null);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentAmount, setPaymentAmount] = useState(0);
   
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -46,33 +44,49 @@ export default function BookingPage() {
     setIsBooking(true);
     
     try {
-      // Create booking in Firebase
+      
+      if (!user) {
+        throw new Error('Du måste vara inloggad för att göra en bokning');
+      }
+
+      // Create booking in Firebase with authenticated user data
       const bookingData = {
         customer: {
-          name: user?.displayName || 'Kund',
-          phone: user?.phoneNumber || '+46 70 123 45 67',
-          email: user?.email || 'kund@example.com'
+          name: user.displayName || user.email?.split('@')[0] || 'Kund',
+          phone: user.phoneNumber || '', // Real phone number or empty
+          email: user.email || ''
         },
         pickup: {
           address: `${booking.pickupLocation.street}, ${booking.pickupLocation.city}`,
           time: booking.pickupTime.toISOString(),
-          coordinates: booking.pickupLocation.coordinates
+          coordinates: booking.pickupLocation.coordinates // Real coordinates from Google Places API
         },
         destination: {
           address: `${booking.destination.street}, ${booking.destination.city}`,
-          coordinates: booking.destination.coordinates
+          coordinates: booking.destination.coordinates // Real coordinates from Google Places API
         },
-        service: booking.serviceTypeId as 'standard' | 'premium' | 'luxury',
+        service: 'standard', // Avanti has one standard service
         status: 'waiting' as const,
-        price: 299 // Base price, should be calculated based on service type
+        price: booking.estimatedPrice, // Real calculated price based on distance
+        customerId: user.uid,
+        paymentStatus: 'pending'
       };
       
-      const bookingId = await firebaseOperations.create('bookings', {
-        ...bookingData,
-        customerId: user?.uid || '',
-        paymentStatus: 'pending'
-      });
+      const bookingId = await firebaseOperations.create('bookings', bookingData);
       setBookingId(bookingId);
+
+      // Create notification for booking creation
+      try {
+        await createNotification({
+          type: 'booking',
+          message: `Ny bokning skapad #${bookingId.slice(-8)}`,
+          bookingId,
+          userId: user.uid,
+        });
+      } catch (notificationError) {
+        console.warn('Failed to create notification:', notificationError);
+        // Don't fail the booking if notification fails
+      }
       
       // Create booking data for display
       const displayBookingData = {
@@ -87,21 +101,37 @@ export default function BookingPage() {
       };
       
       setBookingData(displayBookingData);
-      setPaymentAmount(displayBookingData.estimatedPrice);
-      setShowPaymentModal(true);
+      
+      // Redirect to Stripe Hosted Checkout (fallback to local payment page on error)
+      try {
+        const idToken = await (await import('../../lib/firebase')).auth.currentUser?.getIdToken(true).catch(() => null);
+        const res = await fetch('/api/stripe/checkout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+          },
+          body: JSON.stringify({ bookingId }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data?.url) {
+          console.warn('Checkout creation failed, falling back to /payment:', data?.error);
+          router.push(`/payment?bookingId=${bookingId}`);
+        } else {
+          window.location.href = data.url as string;
+        }
+      } catch (e) {
+        console.warn('Checkout error, fallback to /payment', e);
+        router.push(`/payment?bookingId=${bookingId}`);
+      }
     } catch (error) {
-      console.error('Booking failed:', error);
-      alert('Bokningen misslyckades. Försök igen.');
+      console.error('Booking creation error:', error);
+      alert(`Bokningen misslyckades: ${error instanceof Error ? error.message : 'Okänt fel'}. Försök igen.`);
     } finally {
       setIsBooking(false);
     }
   };
 
-  const handlePaymentSuccess = (paymentId: string) => {
-    setBookingComplete(true);
-    setShowPaymentModal(false);
-    console.log('Payment successful:', paymentId);
-  };
 
   if (bookingComplete && !showBookingStatus) {
     return (
@@ -266,13 +296,6 @@ export default function BookingPage() {
         />
       </div>
 
-      <StripePaymentModal
-        isOpen={showPaymentModal}
-        onClose={() => setShowPaymentModal(false)}
-        amount={paymentAmount}
-        bookingId={bookingId}
-        onPaymentSuccess={handlePaymentSuccess}
-      />
     </div>
   );
 }

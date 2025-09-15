@@ -246,6 +246,42 @@ export const subscribeToMessages = (bookingId: string, callback: (messages: Mess
   });
 };
 
+// Notification functions
+export interface NotificationItem {
+  id?: string;
+  type: 'booking' | 'driver' | 'system';
+  title?: string;
+  message: string;
+  bookingId?: string;
+  userId?: string;
+  createdAt?: any;
+  read?: boolean;
+}
+
+export const createNotification = async (notification: Omit<NotificationItem, 'id' | 'createdAt' | 'read'>) => {
+  try {
+    const docRef = await addDoc(collection(db, collections.notifications), {
+      ...notification,
+      read: false,
+      createdAt: serverTimestamp(),
+    });
+    return docRef.id;
+  } catch (error) {
+    console.error('Error creating notification:', error);
+    throw error;
+  }
+};
+
+export const markNotificationRead = async (notificationId: string) => {
+  try {
+    const ref = doc(db, collections.notifications, notificationId);
+    await updateDoc(ref, { read: true, updatedAt: serverTimestamp() });
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+    throw error;
+  }
+};
+
 // Push notification functions
 export const requestNotificationPermission = async () => {
   if (!messaging) return null;

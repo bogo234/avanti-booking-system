@@ -24,10 +24,8 @@ function validateStripeEnvironment() {
 function createStripeInstance(): Stripe {
   try {
     validateStripeEnvironment();
-    
-    return new Stripe(process.env.STRIPE_SECRET_KEY!, {
-      apiVersion: '2025-08-27.basil',
-    });
+    // Use account default API version unless explicitly overridden in dashboard.
+    return new Stripe(process.env.STRIPE_SECRET_KEY!);
   } catch (error) {
     console.error('Stripe initialization failed:', error);
     throw error;

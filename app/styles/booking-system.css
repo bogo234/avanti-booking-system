@@ -41,6 +41,107 @@
   outline-offset: 2px;
 }
 
+/* Coordinate Loading and Error Styles */
+.coordinate-loading {
+  text-align: center;
+  padding: 2rem;
+  background: var(--background-glass);
+  border-radius: var(--border-radius);
+  margin-bottom: 2rem;
+}
+
+.coordinate-loading .loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+.coordinate-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  color: #fca5a5;
+}
+
+.coordinate-error p {
+  margin: 0.5rem 0;
+}
+
+.coordinate-error .error-hint {
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+.coordinate-warning {
+  display: block;
+  color: #fbbf24;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  font-weight: 500;
+}
+
+.missing-info {
+  background: rgba(251, 191, 36, 0.05);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.missing-info .missing-title {
+  color: #fbbf24;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+  font-size: 0.875rem;
+}
+
+.missing-info ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.missing-info li {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.875rem;
+  padding: 0.25rem 0;
+}
+
+.address-help-text {
+  background: rgba(79, 195, 247, 0.05);
+  border: 1px solid rgba(79, 195, 247, 0.2);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.address-help-text p {
+  color: var(--primary-color);
+  font-size: 0.875rem;
+  margin: 0;
+  font-weight: 500;
+}
+
+.required-indicator {
+  color: #ef4444;
+  margin-left: 0.25rem;
+  font-weight: bold;
+}
+
+.field-hint {
+  display: block;
+  color: #fbbf24;
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
+  font-style: italic;
+}
+
 /* High Contrast Mode */
 @media (prefers-contrast: high) {
   .modern-booking-form {
@@ -1699,4 +1800,83 @@ select.modern-input::-webkit-scrollbar-thumb:hover {
     flex-direction: column;
     padding: 1rem;
   }
+}
+
+.modern-booking-form.compact {
+  max-width: 360px;
+  padding: 0.7rem;
+}
+
+.modern-booking-form.compact .progress-indicator {
+  margin-bottom: 0.4rem;
+  padding: 0.3rem 0.4rem;
+}
+
+.modern-booking-form.compact .step-number {
+  width: 18px;
+  height: 18px;
+  font-size: 0.55rem;
+}
+
+.modern-booking-form.compact .step-label {
+  font-size: 0.6rem;
+}
+
+.modern-booking-form.compact .step-title {
+  font-size: 0.75rem;
+  margin-bottom: 0.4rem;
+}
+
+.modern-booking-form.compact .address-summary {
+  padding: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.modern-booking-form.compact .address-item {
+  margin-bottom: 0.25rem;
+  padding: 0.1rem 0;
+}
+
+.modern-booking-form.compact .address-label,
+.modern-booking-form.compact .address-value {
+  font-size: 0.7rem;
+}
+
+.modern-booking-form.compact .input-group {
+  margin-bottom: 0.4rem;
+}
+
+.modern-booking-form.compact .input-group label {
+  font-size: 0.75rem;
+  margin-bottom: 0.2rem;
+}
+
+.modern-booking-form.compact .modern-input {
+  padding: 0.45rem 0.6rem;
+  font-size: 0.8rem;
+}
+
+.modern-booking-form.compact .price-display {
+  padding: 0.4rem 0.25rem;
+}
+
+.modern-booking-form.compact .price-result .price {
+  font-size: 1.25rem;
+  margin-bottom: 0.2rem;
+}
+
+.modern-booking-form.compact .button-group {
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+  padding-top: 0.4rem;
+}
+
+.modern-booking-form.compact .modern-button {
+  padding: 0.5rem 0.8rem;
+  font-size: 0.78rem;
+  min-width: 110px;
+}
+
+.modern-booking-form.compact .next-button {
+  max-width: 140px;
 }

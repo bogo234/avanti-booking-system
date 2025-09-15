@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
 import { sendVerificationEmail, checkEmailVerification } from '../../lib/user-management';
+import { authApiClient, AuthApiError, RateLimitError } from '../../lib/auth-api-client';
 import Image from 'next/image';
 
 interface EmailVerificationProps {
@@ -20,6 +21,11 @@ export default function EmailVerification({
   const [resendCooldown, setResendCooldown] = useState(0);
   const [isChecking, setIsChecking] = useState(false);
   const [error, setError] = useState('');
+  const [rateLimitInfo, setRateLimitInfo] = useState<{
+    canSendNow: boolean;
+    attemptsRemaining: number;
+    nextAllowedTime?: number;
+  } | null>(null);
 
   // Cooldown timer för att förhindra spam
   useEffect(() => {
@@ -31,6 +37,32 @@ export default function EmailVerification({
     }
   }, [resendCooldown]);
 
+  // Hämta rate limit info vid start
+  useEffect(() => {
+    const fetchRateLimitInfo = async () => {
+      try {
+        const status = await authApiClient.getEmailVerificationStatus();
+        setRateLimitInfo({
+          canSendNow: status.rateLimiting.canSendNow,
+          attemptsRemaining: status.rateLimiting.attemptsRemaining,
+          nextAllowedTime: status.rateLimiting.nextAllowedTime
+        });
+        
+        // Sätt cooldown baserat på next allowed time
+        if (!status.rateLimiting.canSendNow && status.rateLimiting.nextAllowedTime) {
+          const waitTime = Math.ceil((status.rateLimiting.nextAllowedTime - Date.now()) / 1000);
+          if (waitTime > 0) {
+            setResendCooldown(waitTime);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching rate limit info:', error);
+      }
+    };
+
+    fetchRateLimitInfo();
+  }, []);
+
   // Kontrollera verifieringsstatus periodiskt
   useEffect(() => {
     const checkVerification = async () => {
@@ -38,12 +70,22 @@ export default function EmailVerification({
       
       setIsChecking(true);
       try {
-        const isVerified = await checkEmailVerification(user);
-        if (isVerified) {
+        const result = await authApiClient.checkEmailVerification();
+        if (result.verified) {
           onVerificationComplete();
         }
       } catch (error) {
         console.error('Error checking verification:', error);
+        
+        // Fallback till gamla metoden
+        try {
+          const isVerified = await checkEmailVerification(user);
+          if (isVerified) {
+            onVerificationComplete();
+          }
+        } catch (fallbackError) {
+          console.error('Fallback verification check failed:', fallbackError);
+        }
       } finally {
         setIsChecking(false);
       }
@@ -58,20 +100,36 @@ export default function EmailVerification({
   }, [user, onVerificationComplete]);
 
   const handleResendEmail = async () => {
-    if (resendCooldown > 0) return;
+    if (resendCooldown > 0 || (rateLimitInfo && !rateLimitInfo.canSendNow)) return;
     
     setIsResending(true);
     setError('');
     
     try {
-      await sendVerificationEmail(user);
-      setResendCooldown(60); // 60 sekunders cooldown
+      const result = await authApiClient.sendVerificationEmail();
+      setResendCooldown(120); // 2 minuters cooldown (minimum från API)
       onResendEmail();
+      
+      // Uppdatera rate limit info
+      setRateLimitInfo(prev => prev ? {
+        ...prev,
+        canSendNow: false,
+        attemptsRemaining: Math.max(0, prev.attemptsRemaining - 1)
+      } : null);
+      
     } catch (error: any) {
       console.error('Error resending verification email:', error);
-      if (error.code === 'auth/too-many-requests') {
-        setError('För många försök. Vänta en stund innan du försöker igen.');
-        setResendCooldown(300); // 5 minuters cooldown vid för många försök
+      
+      if (error instanceof RateLimitError) {
+        setError(`För många försök. Vänta ${error.resetIn} sekunder innan du försöker igen.`);
+        setResendCooldown(error.resetIn);
+      } else if (error instanceof AuthApiError) {
+        if (error.code === 'EMAIL_ALREADY_VERIFIED') {
+          setError('E-posten är redan verifierad!');
+          onVerificationComplete();
+        } else {
+          setError(error.message);
+        }
       } else {
         setError('Kunde inte skicka verifieringsmail. Försök igen senare.');
       }
@@ -189,20 +247,41 @@ export default function EmailVerification({
               </div>
             )}
 
+            {/* Rate limit info */}
+            {rateLimitInfo && (
+              <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                <div className="flex items-center gap-2 text-blue-400 text-sm">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                  </svg>
+                  <span>Återstående försök: {rateLimitInfo.attemptsRemaining}/5</span>
+                </div>
+                {!rateLimitInfo.canSendNow && (
+                  <p className="text-blue-300 text-xs mt-1">
+                    Nästa mail kan skickas om {resendCooldown} sekunder
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Resend button */}
             <div className="space-y-3">
               <button
                 onClick={handleResendEmail}
-                disabled={isResending || resendCooldown > 0}
+                disabled={isResending || resendCooldown > 0 || (rateLimitInfo && !rateLimitInfo.canSendNow)}
                 className="w-full inline-flex items-center justify-center gap-3 rounded-2xl px-6 py-4 text-sm font-semibold transition-all duration-300 focus:outline-none"
                 style={{
-                  background: resendCooldown > 0 
+                  background: (resendCooldown > 0 || (rateLimitInfo && !rateLimitInfo.canSendNow))
                     ? 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)'
                     : 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.08) 100%)',
                   border: '1px solid rgba(255,255,255,0.2)',
-                  color: resendCooldown > 0 ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.95)',
+                  color: (resendCooldown > 0 || (rateLimitInfo && !rateLimitInfo.canSendNow)) 
+                    ? 'rgba(255,255,255,0.4)' 
+                    : 'rgba(255,255,255,0.95)',
                   boxShadow: '0 4px 15px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.2)',
-                  cursor: resendCooldown > 0 ? 'not-allowed' : 'pointer'
+                  cursor: (resendCooldown > 0 || (rateLimitInfo && !rateLimitInfo.canSendNow)) 
+                    ? 'not-allowed' 
+                    : 'pointer'
                 }}
               >
                 {isResending ? (
@@ -213,9 +292,16 @@ export default function EmailVerification({
                 ) : resendCooldown > 0 ? (
                   <>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
                     </svg>
                     <span>Skicka nytt mail ({resendCooldown}s)</span>
+                  </>
+                ) : rateLimitInfo && !rateLimitInfo.canSendNow ? (
+                  <>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 6l-1.41-1.41L12 10.17 8.41 6.58 7 8l5 5 5-5z"/>
+                    </svg>
+                    <span>Vänta innan nästa försök</span>
                   </>
                 ) : (
                   <>

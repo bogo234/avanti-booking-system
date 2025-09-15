@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { updateDoc, doc } from 'firebase/firestore';
-import { db } from '../../../lib/firebase';
+import { verifyAuthToken, getUserRole, getAdminDb, isFirebaseAdminConfigured } from '../../../lib/firebase-admin';
 import { stripe } from '../../../lib/stripe';
 import Stripe from 'stripe';
 
@@ -23,13 +22,52 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if Firebase Admin SDK is configured
+    if (!isFirebaseAdminConfigured()) {
+      return NextResponse.json(
+        { 
+          error: 'Firebase Admin SDK is not configured. Please set up service account credentials.',
+          details: 'Missing FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, or FIREBASE_PRIVATE_KEY environment variables.'
+        },
+        { status: 500 }
+      );
+    }
+
+    // AuthZ: only booking owner, assigned driver or admin can confirm
+    try {
+      const decoded = await verifyAuthToken(request.headers.get('authorization'));
+      const role = (await getUserRole(decoded.uid)) || 'customer';
+      const adminDb = getAdminDb();
+      const bookingSnap = await adminDb.collection('bookings').doc(bookingId).get();
+      
+      if (!bookingSnap.exists) {
+        return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+      }
+      
+      const bookingData = bookingSnap.data() as any;
+      const isOwner = bookingData.customerId === decoded.uid;
+      const isAssignedDriver = bookingData?.driver?.id === decoded.uid;
+      const isAdmin = role === 'admin';
+      
+      if (!isOwner && !isAssignedDriver && !isAdmin) {
+        return NextResponse.json({ error: 'Unauthorized access to booking' }, { status: 403 });
+      }
+    } catch (authError) {
+      console.error('Authentication error:', authError);
+      return NextResponse.json(
+        { error: 'Authentication failed. Please ensure you are logged in.' },
+        { status: 401 }
+      );
+    }
+
     // Retrieve payment intent from Stripe
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
     if (paymentIntent.status === 'succeeded') {
       // Update booking with payment confirmation
-      const bookingRef = doc(db, 'bookings', bookingId);
-      await updateDoc(bookingRef, {
+      const adminDb = getAdminDb();
+      const bookingRef = adminDb.collection('bookings').doc(bookingId);
+      await bookingRef.update({
         paymentStatus: 'paid',
         paymentId: paymentIntent.id,
         paymentMethod: paymentIntent.payment_method,
@@ -63,8 +101,9 @@ export async function POST(request: NextRequest) {
       });
     } else if (paymentIntent.status === 'canceled') {
       // Update booking with cancellation
-      const bookingRef = doc(db, 'bookings', bookingId);
-      await updateDoc(bookingRef, {
+      const adminDb = getAdminDb();
+      const bookingRef = adminDb.collection('bookings').doc(bookingId);
+      await bookingRef.update({
         paymentStatus: 'canceled',
         paymentId: paymentIntent.id,
         updatedAt: new Date(),

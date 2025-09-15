@@ -123,7 +123,7 @@ export const createUserProfile = async (
           updatedAt: serverTimestamp(),
           lastLogin: serverTimestamp()
         },
-        status: user.emailVerified ? 'active' : 'pending_verification'
+        status: (user.emailVerified || additionalData.role === 'admin') ? 'active' : 'pending_verification'
       };
 
       await setDoc(userRef, userProfile);

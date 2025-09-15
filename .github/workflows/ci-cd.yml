@@ -1,0 +1,451 @@
+# Avanti Booking System - CI/CD Pipeline
+# Advanced deployment automation with comprehensive testing and monitoring
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop, staging]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment Environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+
+env:
+  NODE_VERSION: '18.x'
+  PNPM_VERSION: '8.x'
+
+jobs:
+  # Code Quality & Security Checks
+  quality-checks:
+    name: Quality & Security Checks
+    runs-on: ubuntu-latest
+    outputs:
+      should-deploy: ${{ steps.changes.outputs.should-deploy }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Detect changes
+      id: changes
+      run: |
+        if git diff --quiet HEAD~1 HEAD -- '*.ts' '*.tsx' '*.js' '*.jsx' 'package.json' 'package-lock.json'; then
+          echo "should-deploy=false" >> $GITHUB_OUTPUT
+        else
+          echo "should-deploy=true" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Run ESLint
+      run: npm run lint
+
+    - name: Run Prettier check
+      run: npm run format:check
+
+    - name: TypeScript type checking
+      run: npm run type-check
+
+    - name: Run unit tests
+      run: npm run test:unit
+      env:
+        CI: true
+
+    - name: Security audit
+      run: npm audit --audit-level=moderate
+
+    - name: Dependency vulnerability check
+      uses: actions/dependency-review-action@v3
+      if: github.event_name == 'pull_request'
+
+    - name: CodeQL Analysis
+      uses: github/codeql-action/init@v3
+      with:
+        languages: typescript, javascript
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+
+  # Build and Test
+  build-and-test:
+    name: Build & Integration Tests
+    runs-on: ubuntu-latest
+    needs: quality-checks
+    if: needs.quality-checks.outputs.should-deploy == 'true'
+    
+    services:
+      firebase-emulator:
+        image: firebase/firebase-tools
+        ports:
+          - 9099:9099
+          - 8080:8080
+          - 5001:5001
+        options: --entrypoint="" 
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build application
+      run: npm run build
+      env:
+        NODE_ENV: production
+        NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
+        NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+
+    - name: Start Firebase Emulators
+      run: |
+        npm install -g firebase-tools
+        firebase emulators:start --only auth,firestore,functions &
+        sleep 30
+      env:
+        FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+    - name: Run integration tests
+      run: npm run test:integration
+      env:
+        CI: true
+        FIREBASE_AUTH_EMULATOR_HOST: localhost:9099
+        FIRESTORE_EMULATOR_HOST: localhost:8080
+
+    - name: Run E2E tests
+      run: npm run test:e2e
+      env:
+        CI: true
+        PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+
+    - name: Build performance report
+      run: |
+        npm run build:analyze
+        npm run lighthouse:ci
+      continue-on-error: true
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-artifacts
+        path: |
+          .next/
+          out/
+          lighthouse-report.html
+        retention-days: 30
+
+    - name: Upload test coverage
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./coverage/lcov.info
+        flags: unittests
+        name: avanti-coverage
+
+  # Security Scanning
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    needs: quality-checks
+    if: needs.quality-checks.outputs.should-deploy == 'true'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+    - name: OWASP ZAP Baseline Scan
+      uses: zaproxy/action-baseline@v0.7.0
+      with:
+        target: 'http://localhost:3000'
+        rules_file_name: '.zap/rules.tsv'
+        cmd_options: '-a'
+
+  # Staging Deployment
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build-and-test, security-scan]
+    if: |
+      always() && 
+      needs.build-and-test.result == 'success' && 
+      needs.security-scan.result == 'success' &&
+      (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/staging')
+    
+    environment:
+      name: staging
+      url: https://staging.avanti-app.se
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: build-artifacts
+
+    - name: Deploy to Vercel Staging
+      uses: amondnet/vercel-action@v25
+      with:
+        vercel-token: ${{ secrets.VERCEL_TOKEN }}
+        vercel-args: '--prod'
+        vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+        vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+        scope: ${{ secrets.VERCEL_ORG_ID }}
+        alias-domains: staging.avanti-app.se
+
+    - name: Update Firebase Functions (Staging)
+      run: |
+        npm install -g firebase-tools
+        firebase deploy --only functions --project staging
+      env:
+        FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+    - name: Run smoke tests
+      run: npm run test:smoke
+      env:
+        STAGING_URL: https://staging.avanti-app.se
+
+    - name: Notify deployment
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        channel: '#deployments'
+        text: 'Staging deployment completed successfully!'
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  # Production Deployment
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [deploy-staging]
+    if: |
+      github.ref == 'refs/heads/main' && 
+      needs.deploy-staging.result == 'success'
+    
+    environment:
+      name: production
+      url: https://avanti-app.se
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: build-artifacts
+
+    - name: Pre-deployment health check
+      run: |
+        curl -f https://staging.avanti-app.se/api/health || exit 1
+
+    - name: Deploy to Vercel Production
+      uses: amondnet/vercel-action@v25
+      with:
+        vercel-token: ${{ secrets.VERCEL_TOKEN }}
+        vercel-args: '--prod'
+        vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+        vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+        scope: ${{ secrets.VERCEL_ORG_ID }}
+        alias-domains: |
+          avanti-app.se
+          www.avanti-app.se
+
+    - name: Update Firebase Functions (Production)
+      run: |
+        npm install -g firebase-tools
+        firebase deploy --only functions --project production
+      env:
+        FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+    - name: Database migration
+      run: npm run db:migrate
+      env:
+        DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+        FIREBASE_ADMIN_KEY: ${{ secrets.FIREBASE_ADMIN_KEY }}
+
+    - name: Warm up production cache
+      run: |
+        curl -X POST https://avanti-app.se/api/cache/warm \
+          -H "Authorization: Bearer ${{ secrets.CACHE_WARM_TOKEN }}"
+
+    - name: Post-deployment tests
+      run: npm run test:production
+      env:
+        PRODUCTION_URL: https://avanti-app.se
+        API_TEST_TOKEN: ${{ secrets.API_TEST_TOKEN }}
+
+    - name: Update monitoring dashboards
+      run: |
+        curl -X POST "${{ secrets.DATADOG_WEBHOOK }}" \
+          -H "Content-Type: application/json" \
+          -d '{"event": "deployment", "version": "${{ github.sha }}", "environment": "production"}'
+
+    - name: Notify successful deployment
+      uses: 8398a7/action-slack@v3
+      with:
+        status: success
+        channel: '#deployments'
+        text: |
+          🚀 Production deployment successful!
+          Version: ${{ github.sha }}
+          URL: https://avanti-app.se
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  # Rollback Job (Manual Trigger)
+  rollback:
+    name: Rollback Production
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'rollback'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+
+    - name: Rollback Vercel deployment
+      run: |
+        npm install -g vercel
+        vercel rollback --token ${{ secrets.VERCEL_TOKEN }} --yes
+
+    - name: Rollback Firebase Functions
+      run: |
+        npm install -g firebase-tools
+        firebase functions:config:clone --from production-backup --to production
+        firebase deploy --only functions --project production
+      env:
+        FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+    - name: Notify rollback
+      uses: 8398a7/action-slack@v3
+      with:
+        status: custom
+        custom_payload: |
+          {
+            channel: '#critical',
+            text: '⚠️ Production rollback initiated!',
+            color: 'warning'
+          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  # Performance Monitoring
+  performance-monitoring:
+    name: Performance Monitoring
+    runs-on: ubuntu-latest
+    needs: [deploy-production]
+    if: needs.deploy-production.result == 'success'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Lighthouse CI
+      run: |
+        npm install -g @lhci/cli@0.12.x
+        lhci autorun
+      env:
+        LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+        LHCI_BUILD_CONTEXT__EXTERNAL_BUILD_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+    - name: WebPageTest
+      uses: WebPageTest/github-action@v1
+      with:
+        apikey: ${{ secrets.WPT_API_KEY }}
+        urls: |
+          https://avanti-app.se
+          https://avanti-app.se/booking
+        settings: |
+          {
+            "location": "Stockholm:Chrome",
+            "runs": 3,
+            "connectivity": "3G"
+          }
+
+    - name: Core Web Vitals monitoring
+      run: |
+        curl -X POST "${{ secrets.ANALYTICS_WEBHOOK }}" \
+          -H "Content-Type: application/json" \
+          -d '{"action": "monitor_vitals", "url": "https://avanti-app.se"}'
+
+  # Cleanup
+  cleanup:
+    name: Cleanup
+    runs-on: ubuntu-latest
+    needs: [deploy-production, performance-monitoring]
+    if: always()
+
+    steps:
+    - name: Clean up old deployments
+      run: |
+        # Clean up old Vercel deployments (keep last 10)
+        npx vercel ls --token ${{ secrets.VERCEL_TOKEN }} | tail -n +11 | xargs -I {} npx vercel rm {} --token ${{ secrets.VERCEL_TOKEN }} --yes
+
+    - name: Clean up Docker images
+      run: |
+        docker system prune -f
+        docker image prune -a -f
+
+    - name: Archive logs
+      run: |
+        # Archive deployment logs for compliance
+        curl -X POST "${{ secrets.LOG_ARCHIVE_ENDPOINT }}" \
+          -H "Authorization: Bearer ${{ secrets.LOG_ARCHIVE_TOKEN }}" \
+          -d '{"run_id": "${{ github.run_id }}", "repository": "${{ github.repository }}"}'

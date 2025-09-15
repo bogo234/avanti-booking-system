@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
-import { useUserData, firebaseOperations } from '../../hooks/useFirebaseData';
+import { useUserData } from '../../hooks/useFirebaseData';
 import '../styles/booking-system.css';
 
 export default function CustomerDashboard() {
@@ -44,13 +44,25 @@ export default function CustomerDashboard() {
   };
 
   const handleCancelBooking = async (bookingId: string) => {
-    if (confirm('Är du säker på att du vill avbryta bokningen?')) {
-      try {
-        await firebaseOperations.update('bookings', bookingId, { status: 'cancelled' });
-      } catch (error) {
-        console.error('Error cancelling booking:', error);
-        alert('Kunde inte avbryta bokningen. Försök igen.');
+    if (!confirm('Är du säker på att du vill avbryta bokningen?')) return;
+    try {
+      if (!user) { router.push('/auth'); return; }
+      const idToken = await user.getIdToken(true).catch(() => null);
+      const res = await fetch('/api/bookings/update-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+        },
+        body: JSON.stringify({ bookingId, newStatus: 'cancelled' }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data?.error || 'Kunde inte avbryta bokningen. Försök igen.');
       }
+    } catch (error) {
+      console.error('Error cancelling booking:', error);
+      alert('Kunde inte avbryta bokningen. Försök igen.');
     }
   };
 

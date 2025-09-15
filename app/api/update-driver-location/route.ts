@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../../lib/firebase';
+import { serverTimestamp } from 'firebase/firestore';
+import { getAdminDb } from '../../../lib/firebase-admin';
+import { verifyAuthToken, getUserRole } from '../../../lib/firebase-admin';
 
 export async function POST(request: NextRequest) {
   try {
     const { driverId, location, bookingId } = await request.json();
+
+    // AuthZ: only the driver themself or admin can update
+    const decoded = await verifyAuthToken(request.headers.get('authorization'));
+    const role = (await getUserRole(decoded.uid)) || 'customer';
+    const isSameDriver = decoded.uid === driverId;
+    const isAdmin = role === 'admin';
+    if (!isSameDriver && !isAdmin) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
 
     if (!driverId || !location || !location.lat || !location.lng) {
       return NextResponse.json(
@@ -13,25 +23,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const adminDb = getAdminDb();
+
     // Update driver location in Firebase
-    const driverRef = doc(db, 'drivers', driverId);
-    await updateDoc(driverRef, {
+    await adminDb.collection('drivers').doc(driverId).update({
       location: {
         lat: location.lat,
         lng: location.lng
       },
-      updatedAt: serverTimestamp()
+      updatedAt: new Date()
     });
 
     // If bookingId is provided, also update the booking with driver location
     if (bookingId) {
-      const bookingRef = doc(db, 'bookings', bookingId);
-      await updateDoc(bookingRef, {
+      await adminDb.collection('bookings').doc(bookingId).update({
         'driver.location': {
           lat: location.lat,
           lng: location.lng
         },
-        updatedAt: serverTimestamp()
+        updatedAt: new Date()
       });
     }
 

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
 import { UserProfile, updateUserProfile, changeUserPassword } from '../../lib/user-management';
+import { authApiClient, AuthApiError, RateLimitError, UserProfileData, PasswordStrength } from '../../lib/auth-api-client';
 import Image from 'next/image';
 
 interface UserProfileProps {
@@ -20,6 +21,11 @@ export default function UserProfileComponent({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [rateLimitInfo, setRateLimitInfo] = useState<{ resetIn?: number } | null>(null);
+  
+  // Password strength state
+  const [passwordStrength, setPasswordStrength] = useState<PasswordStrength | null>(null);
+  const [checkingStrength, setCheckingStrength] = useState(false);
   
   // Form states
   const [formData, setFormData] = useState({
@@ -70,28 +76,28 @@ export default function UserProfileComponent({
     setIsLoading(true);
     setError('');
     setSuccess('');
+    setRateLimitInfo(null);
 
     try {
-      await updateUserProfile(userProfile.uid, {
-        profile: {
-          name: formData.name,
-          phone: formData.phone,
-          preferences: {
-            defaultAddresses: {
-              home: formData.homeAddress ? {
-                address: formData.homeAddress
-              } : undefined,
-              work: formData.workAddress ? {
-                address: formData.workAddress
-              } : undefined
-            },
-            notifications: {
-              email: formData.emailNotifications,
-              sms: formData.smsNotifications,
-              push: formData.pushNotifications
-            },
-            language: formData.language
-          }
+      // Use new API client
+      await authApiClient.updateProfile({
+        name: formData.name,
+        phone: formData.phone,
+        preferences: {
+          defaultAddresses: {
+            home: formData.homeAddress ? {
+              address: formData.homeAddress
+            } : undefined,
+            work: formData.workAddress ? {
+              address: formData.workAddress
+            } : undefined
+          },
+          notifications: {
+            email: formData.emailNotifications,
+            sms: formData.smsNotifications,
+            push: formData.pushNotifications
+          },
+          language: formData.language
         }
       });
 
@@ -103,9 +109,36 @@ export default function UserProfileComponent({
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       console.error('Error updating profile:', error);
-      setError('Kunde inte uppdatera profil. Försök igen.');
+      
+      if (error instanceof RateLimitError) {
+        setRateLimitInfo({ resetIn: error.resetIn });
+        setError(`För många försök. Försök igen om ${error.resetIn} sekunder.`);
+      } else if (error instanceof AuthApiError) {
+        setError(error.message);
+      } else {
+        setError('Kunde inte uppdatera profil. Försök igen.');
+      }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Check password strength in real-time
+  const checkPasswordStrength = async (password: string) => {
+    if (!password || password.length < 3) {
+      setPasswordStrength(null);
+      return;
+    }
+
+    setCheckingStrength(true);
+    try {
+      const strength = await authApiClient.checkPasswordStrength(password);
+      setPasswordStrength(strength);
+    } catch (error) {
+      console.error('Error checking password strength:', error);
+      setPasswordStrength(null);
+    } finally {
+      setCheckingStrength(false);
     }
   };
 
@@ -115,27 +148,39 @@ export default function UserProfileComponent({
       return;
     }
 
-    if (passwordData.newPassword.length < 6) {
-      setError('Lösenordet måste vara minst 6 tecken');
+    if (passwordStrength && passwordStrength.score < 4) {
+      setError('Lösenordet är för svagt. Följ rekommendationerna ovan.');
       return;
     }
 
     setIsLoading(true);
     setError('');
+    setRateLimitInfo(null);
 
     try {
-      await changeUserPassword(user, passwordData.currentPassword, passwordData.newPassword);
-      setSuccess('Lösenord ändrat!');
+      const result = await authApiClient.changePassword(
+        passwordData.currentPassword, 
+        passwordData.newPassword
+      );
+      
+      setSuccess(`Lösenord ändrat! Säkerhetsnivå: ${result.strengthScore}/6`);
       setShowPasswordChange(false);
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setPasswordStrength(null);
       
       setTimeout(() => setSuccess(''), 3000);
     } catch (error: any) {
       console.error('Error changing password:', error);
-      if (error.code === 'auth/wrong-password') {
-        setError('Felaktigt nuvarande lösenord');
-      } else if (error.code === 'auth/weak-password') {
-        setError('Lösenordet är för svagt');
+      
+      if (error instanceof RateLimitError) {
+        setRateLimitInfo({ resetIn: error.resetIn });
+        setError(`För många lösenordsförsök. Försök igen om ${error.resetIn} sekunder.`);
+      } else if (error instanceof AuthApiError) {
+        if (error.code === 'WEAK_PASSWORD') {
+          setError('Lösenordet är för svagt enligt säkerhetspolicyn');
+        } else {
+          setError(error.message);
+        }
       } else {
         setError('Kunde inte ändra lösenord. Försök igen.');
       }
@@ -181,6 +226,14 @@ export default function UserProfileComponent({
       {error && (
         <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
           <p className="text-red-400 text-sm">{error}</p>
+          {rateLimitInfo && rateLimitInfo.resetIn && (
+            <div className="mt-2 text-xs text-red-300">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin"></div>
+                <span>Försök igen om {rateLimitInfo.resetIn} sekunder</span>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -406,10 +459,76 @@ export default function UserProfileComponent({
               <input
                 type="password"
                 value={passwordData.newPassword}
-                onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                onChange={(e) => {
+                  const newPassword = e.target.value;
+                  setPasswordData(prev => ({ ...prev, newPassword }));
+                  
+                  // Check strength with debounce
+                  clearTimeout((window as any).passwordStrengthTimeout);
+                  (window as any).passwordStrengthTimeout = setTimeout(() => {
+                    checkPasswordStrength(newPassword);
+                  }, 500);
+                }}
                 className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/20"
-                placeholder="Nytt lösenord (minst 6 tecken)"
+                placeholder="Nytt lösenord (minst 8 tecken)"
               />
+              
+              {/* Password Strength Indicator */}
+              {passwordData.newPassword && (
+                <div className="mt-3 space-y-2">
+                  {checkingStrength ? (
+                    <div className="flex items-center gap-2 text-white/60 text-sm">
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white/60 rounded-full animate-spin"></div>
+                      <span>Kontrollerar lösenordsstyrka...</span>
+                    </div>
+                  ) : passwordStrength ? (
+                    <>
+                      {/* Strength Bar */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-white/70 text-sm">Styrka:</span>
+                        <div className="flex-1 bg-white/10 rounded-full h-2">
+                          <div 
+                            className={`h-2 rounded-full transition-all duration-300 ${
+                              passwordStrength.level === 'weak' ? 'bg-red-500' :
+                              passwordStrength.level === 'medium' ? 'bg-yellow-500' :
+                              'bg-green-500'
+                            }`}
+                            style={{ width: `${(passwordStrength.score / passwordStrength.maxScore) * 100}%` }}
+                          />
+                        </div>
+                        <span className={`text-sm font-medium ${
+                          passwordStrength.level === 'weak' ? 'text-red-400' :
+                          passwordStrength.level === 'medium' ? 'text-yellow-400' :
+                          'text-green-400'
+                        }`}>
+                          {passwordStrength.level === 'weak' ? 'Svagt' :
+                           passwordStrength.level === 'medium' ? 'Medel' : 'Starkt'}
+                        </span>
+                      </div>
+                      
+                      {/* Feedback */}
+                      {passwordStrength.feedback.length > 0 && (
+                        <div className="text-xs text-white/60">
+                          <p className="mb-1">För att förbättra:</p>
+                          <ul className="list-disc list-inside space-y-1">
+                            {passwordStrength.feedback.map((feedback, index) => (
+                              <li key={index}>{feedback}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      {/* Score Display */}
+                      <div className="flex items-center gap-2 text-xs text-white/50">
+                        <span>Poäng: {passwordStrength.score}/{passwordStrength.maxScore}</span>
+                        {passwordStrength.score >= 4 && (
+                          <span className="text-green-400">✓ Godkänt</span>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
             
             <div>

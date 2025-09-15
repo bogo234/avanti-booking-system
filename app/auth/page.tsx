@@ -76,8 +76,8 @@ export default function AuthPage() {
   // Handle user state and verification
   useEffect(() => {
     if (user) {
-      // Check if email is verified
-      if (!user.emailVerified && userProfile?.status === 'pending_verification') {
+      // Check if email is verified (skip verification for admin users)
+      if (!user.emailVerified && userProfile?.status === 'pending_verification' && userRole !== 'admin') {
         setAuthMode('verification');
         return;
       }

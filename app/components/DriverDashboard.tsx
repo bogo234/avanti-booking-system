@@ -14,6 +14,7 @@ import {
   getDocs,
   updateDoc 
 } from 'firebase/firestore';
+import { createNotification } from '../../lib/firebase';
 
 interface DriverDashboardProps {
   driverId: string;
@@ -72,7 +73,7 @@ export default function DriverDashboard({ driverId }: DriverDashboardProps) {
         }
 
       } catch (error) {
-        console.error('Error loading driver data:', error);
+        // Error loading driver data
       } finally {
         setIsLoading(false);
       }
@@ -82,26 +83,58 @@ export default function DriverDashboard({ driverId }: DriverDashboardProps) {
   }, [driverId]);
 
   const handleToggleOnline = () => {
-    setIsOnline(!isOnline);
-    // Update driver availability status
+    const newOnline = !isOnline;
+    setIsOnline(newOnline);
+    // Update driver availability status in Firestore
+    try {
+      const driverRef = doc(db, 'drivers', driverId);
+      updateDoc(driverRef, { status: newOnline ? 'available' : 'offline' });
+    } catch (e) {
+      // Failed to update driver status
+    }
     if (driver) {
-      setDriver({ ...driver, isAvailable: !isOnline });
+      setDriver({ ...driver, isAvailable: newOnline });
     }
   };
 
   const handleAcceptBooking = async (bookingId: string) => {
     setIsLoading(true);
     try {
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      // Assign driver to booking in Firestore
+      const bookingRef = doc(db, 'bookings', bookingId);
+      await updateDoc(bookingRef, {
+        status: 'driver_assigned',
+        driverId: driverId,
+        driver: driver ? {
+          id: driverId,
+          name: `${driver.firstName} ${driver.lastName}`,
+          phone: driver.phone,
+          car: driver.vehicleRegistration,
+          licensePlate: driver.vehicleRegistration,
+        } : {
+          id: driverId,
+          name: 'Förare',
+          phone: '',
+          car: '',
+          licensePlate: '',
+        }
+      });
+
       const booking = availableBookings.find(b => b.id === bookingId);
       if (booking) {
         setCurrentBooking({ ...booking, status: 'driver_assigned' as BookingStatus });
         setAvailableBookings(availableBookings.filter(b => b.id !== bookingId));
       }
+
+      // Create notification
+      await createNotification({
+        type: 'booking',
+        message: `Förare tilldelad bokning #${bookingId.slice(-6)}`,
+        bookingId,
+        userId: booking?.customerId,
+      });
     } catch (error) {
-      console.error('Error accepting booking:', error);
+      // Error accepting booking
     } finally {
       setIsLoading(false);
     }
@@ -112,15 +145,24 @@ export default function DriverDashboard({ driverId }: DriverDashboardProps) {
     
     setIsLoading(true);
     try {
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Update booking status in Firestore
+      const bookingRef = doc(db, 'bookings', currentBooking.id);
+      await updateDoc(bookingRef, { status });
+
+      await createNotification({
+        type: 'booking',
+        message: `Bokning #${currentBooking.id.slice(-6)} status: ${getStatusText(status)}`,
+        bookingId: currentBooking.id,
+        userId: currentBooking.customerId,
+      });
+
       setCurrentBooking({ ...currentBooking, status });
       
       if (status === 'completed') {
         setCurrentBooking(null);
       }
     } catch (error) {
-      console.error('Error updating booking status:', error);
+      // Error updating booking status
     } finally {
       setIsLoading(false);
     }

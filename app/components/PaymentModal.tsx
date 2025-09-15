@@ -40,16 +40,45 @@ export default function PaymentModal({
     setError('');
 
     try {
-      // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Create payment intent via API
+      const idToken = await (await import('../../lib/firebase')).auth.currentUser?.getIdToken(true).catch(() => null);
+      const response = await fetch('/api/create-payment-intent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+        },
+        body: JSON.stringify({
+          amount: amount * 100, // Convert to öre
+          bookingId,
+          paymentMethod,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create payment intent');
+      }
+
+      const { clientSecret, paymentId } = await response.json();
       
-      // Generate mock payment ID
-      const paymentId = 'PAY_' + Date.now().toString().slice(-8);
-      
-      // Simulate success
-      onPaymentSuccess(paymentId);
-      onClose();
+      // Process payment based on method
+      if (paymentMethod === 'card') {
+        // Stripe card payment will be handled by StripePaymentModal
+        onPaymentSuccess(paymentId);
+        onClose();
+      } else if (paymentMethod === 'swish') {
+        // Initiate Swish payment
+        // This would integrate with Swish API
+        onPaymentSuccess(paymentId);
+        onClose();
+      } else if (paymentMethod === 'klarna') {
+        // Redirect to Klarna checkout
+        // This would integrate with Klarna API
+        onPaymentSuccess(paymentId);
+        onClose();
+      }
     } catch (error) {
+      console.error('Payment processing error:', error);
       setError('Betalningen misslyckades. Försök igen.');
     } finally {
       setIsProcessing(false);
