@@ -78,8 +78,18 @@ export function isFirebaseAdminConfigured(): boolean {
     const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
     const privateKey = process.env.FIREBASE_PRIVATE_KEY;
     
+    // Debug logging to see what's actually available
+    console.log('Firebase Admin SDK Debug:', {
+      projectId: projectId ? 'SET' : 'NOT_SET',
+      clientEmail: clientEmail ? 'SET' : 'NOT_SET',
+      privateKey: privateKey ? 'SET' : 'NOT_SET',
+      privateKeyLength: privateKey?.length || 0,
+      allEnvKeys: Object.keys(process.env).filter(key => key.includes('FIREBASE'))
+    });
+    
     return !!(projectId && clientEmail && privateKey);
-  } catch {
+  } catch (error) {
+    console.error('Firebase Admin SDK configuration check failed:', error);
     return false;
   }
 }

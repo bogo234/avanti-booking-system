@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '../../../../lib/stripe';
-import { verifyAuthToken, getUserRole, getAdminDb, isFirebaseAdminConfigured } from '../../../../lib/firebase-admin';
+import { verifyAuthToken, getUserRole, getAdminDb, isFirebaseAdminConfigured, testFirebaseAdminSDK } from '../../../../lib/firebase-admin-robust';
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,16 +10,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Booking ID is required' }, { status: 400 });
     }
 
-    if (!isFirebaseAdminConfigured()) {
-      const missingVars = [];
-      if (!process.env.FIREBASE_PROJECT_ID) missingVars.push('FIREBASE_PROJECT_ID');
-      if (!process.env.FIREBASE_CLIENT_EMAIL) missingVars.push('FIREBASE_CLIENT_EMAIL');
-      if (!process.env.FIREBASE_PRIVATE_KEY) missingVars.push('FIREBASE_PRIVATE_KEY');
-      
+    // Test Firebase Admin SDK with detailed logging
+    const firebaseTest = await testFirebaseAdminSDK();
+    if (!firebaseTest.success) {
+      console.error('Firebase Admin SDK test failed:', firebaseTest.error);
       return NextResponse.json({ 
         error: 'Firebase Admin SDK not configured',
-        details: `Missing environment variables: ${missingVars.join(', ')}`,
-        missingVars
+        details: firebaseTest.error || 'Unknown error',
+        debug: 'Check Vercel logs for detailed environment variable information'
       }, { status: 500 });
     }
 

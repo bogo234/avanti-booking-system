@@ -673,7 +673,7 @@ function PaymentPageInner() {
       }
       
       const idToken = await (await import('../../lib/firebase')).auth.currentUser?.getIdToken(true).catch(() => null);
-           const res = await fetch('/api/stripe/checkout-temp', {
+           const res = await fetch('/api/stripe/checkout', {
              method: 'POST',
              headers: {
                'Content-Type': 'application/json',
