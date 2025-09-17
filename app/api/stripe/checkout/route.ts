@@ -11,7 +11,16 @@ export async function POST(req: NextRequest) {
     }
 
     if (!isFirebaseAdminConfigured()) {
-      return NextResponse.json({ error: 'Firebase Admin SDK not configured' }, { status: 500 });
+      const missingVars = [];
+      if (!process.env.FIREBASE_PROJECT_ID) missingVars.push('FIREBASE_PROJECT_ID');
+      if (!process.env.FIREBASE_CLIENT_EMAIL) missingVars.push('FIREBASE_CLIENT_EMAIL');
+      if (!process.env.FIREBASE_PRIVATE_KEY) missingVars.push('FIREBASE_PRIVATE_KEY');
+      
+      return NextResponse.json({ 
+        error: 'Firebase Admin SDK not configured',
+        details: `Missing environment variables: ${missingVars.join(', ')}`,
+        missingVars
+      }, { status: 500 });
     }
 
     const decoded = await verifyAuthToken(req.headers.get('authorization'));

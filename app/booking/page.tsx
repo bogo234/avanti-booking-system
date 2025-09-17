@@ -102,7 +102,7 @@ export default function BookingPage() {
       
       setBookingData(displayBookingData);
       
-      // Redirect to Stripe Hosted Checkout (fallback to local payment page on error)
+      // Redirect directly to Stripe Hosted Checkout
       try {
         const idToken = await (await import('../../lib/firebase')).auth.currentUser?.getIdToken(true).catch(() => null);
         const res = await fetch('/api/stripe/checkout', {
@@ -115,13 +115,16 @@ export default function BookingPage() {
         });
         const data = await res.json();
         if (!res.ok || !data?.url) {
-          console.warn('Checkout creation failed, falling back to /payment:', data?.error);
-          router.push(`/payment?bookingId=${bookingId}`);
-        } else {
-          window.location.href = data.url as string;
+          if (data?.details) {
+            throw new Error(`${data.error}: ${data.details}`);
+          }
+          throw new Error(data?.error || 'Kunde inte skapa Stripe-betalning');
         }
+        // Direct redirect to Stripe
+        window.location.replace(data.url as string);
       } catch (e) {
-        console.warn('Checkout error, fallback to /payment', e);
+        console.error('Stripe checkout error:', e);
+        // Only fallback to payment page if Stripe completely fails
         router.push(`/payment?bookingId=${bookingId}`);
       }
     } catch (error) {

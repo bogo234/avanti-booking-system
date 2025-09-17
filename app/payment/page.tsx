@@ -667,6 +667,11 @@ function PaymentPageInner() {
     try {
       setIsRedirecting(true);
       setCheckoutError('');
+      
+      if (!bookingDetails?.id) {
+        throw new Error('Boknings-ID saknas');
+      }
+      
       const idToken = await (await import('../../lib/firebase')).auth.currentUser?.getIdToken(true).catch(() => null);
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
@@ -674,14 +679,21 @@ function PaymentPageInner() {
           'Content-Type': 'application/json',
           ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
         },
-        body: JSON.stringify({ bookingId: bookingDetails?.id }),
+        body: JSON.stringify({ bookingId: bookingDetails.id }),
       });
+      
       const data = await res.json();
       if (!res.ok || !data?.url) {
-        throw new Error(data?.error || 'Kunde inte skapa Stripe‑betalning.');
+        if (data?.details) {
+          throw new Error(`${data.error}: ${data.details}`);
+        }
+        throw new Error(data?.error || 'Kunde inte skapa Stripe-betalning.');
       }
-      window.location.href = data.url as string;
+      
+      // Immediate redirect to Stripe
+      window.location.replace(data.url as string);
     } catch (e) {
+      console.error('Stripe checkout error:', e);
       setCheckoutError(e instanceof Error ? e.message : 'Ett fel uppstod. Försök igen.');
       setIsRedirecting(false);
     }
@@ -697,7 +709,7 @@ function PaymentPageInner() {
     return (
       <div className="loading-container">
         <div className="loading-spinner"></div>
-        <p>Laddar betalningssida...</p>
+        <p>Omdirigerar till Stripe...</p>
         {retryCount > 0 && (
           <p className="retry-info">Försöker igen... ({retryCount}/2)</p>
         )}
@@ -789,55 +801,91 @@ function PaymentPageInner() {
     return null;
   }
 
-  // Minimal redirect UI (no local card form)
-  return (
-    <div className="redirect-container">
-      <div className="redirect-card">
-        <h1>Öppnar säker betalning…</h1>
-        <p>Du skickas till Stripe för att slutföra betalningen.</p>
-        {checkoutError && (
-          <div className="error-message" style={{ marginTop: '1rem' }}>{checkoutError}</div>
-        )}
-        <div className="actions">
-          <button className="primary" onClick={startHostedCheckout} disabled={isRedirecting}>
-            {isRedirecting ? 'Öppnar Stripe…' : 'Försök igen'}
-          </button>
-          <button className="secondary" onClick={() => router.push(`/booking`)} disabled={isRedirecting}>
-            Tillbaka till bokning
-          </button>
+  // Show error state if checkout failed, otherwise redirect immediately
+  if (checkoutError) {
+    return (
+      <div className="error-container">
+        <div className="error-card">
+          <h1>Betalningsfel</h1>
+          <p>{checkoutError}</p>
+          <div className="actions">
+            <button className="primary" onClick={startHostedCheckout} disabled={isRedirecting}>
+              {isRedirecting ? 'Försöker igen...' : 'Försök igen'}
+            </button>
+            <button className="secondary" onClick={() => router.push(`/booking`)} disabled={isRedirecting}>
+              Tillbaka till bokning
+            </button>
+          </div>
         </div>
-      </div>
 
+        <style jsx>{`
+          .error-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            padding: 1.5rem;
+          }
+          .error-card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            max-width: 520px;
+            width: 100%;
+            text-align: center;
+          }
+          h1 { margin: 0 0 0.5rem 0; font-size: 1.5rem; color: #111827; }
+          p { margin: 0 0 1.5rem 0; color: #6b7280; }
+          .actions { display: flex; gap: 0.75rem; }
+          .primary {
+            flex: 1; background: #1a1a1a; color: #fff; border: none; border-radius: 10px; padding: 0.75rem 1rem; font-weight: 600; cursor: pointer;
+          }
+          .primary:disabled { opacity: 0.6; cursor: not-allowed; }
+          .secondary {
+            flex: 1; background: #f8fafc; color: #64748b; border: 2px solid #e2e8f0; border-radius: 10px; padding: 0.75rem 1rem; font-weight: 600; cursor: pointer;
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  // If we reach here, we're redirecting - show minimal loading state
+  return (
+    <div className="loading-container">
+      <div className="loading-spinner"></div>
+      <p>Omdirigerar till Stripe...</p>
+      
       <style jsx>{`
-        .redirect-container {
+        .loading-container {
           min-height: 100vh;
           display: flex;
+          flex-direction: column;
           align-items: center;
           justify-content: center;
           background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-          padding: 1.5rem;
         }
-        .redirect-card {
-          background: #fff;
-          border-radius: 16px;
-          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-          padding: 2rem;
-          max-width: 520px;
-          width: 100%;
-          text-align: center;
+
+        .loading-spinner {
+          width: 40px;
+          height: 40px;
+          border: 4px solid #e2e8f0;
+          border-top: 4px solid #1a1a1a;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+          margin-bottom: 1rem;
         }
-        h1 { margin: 0 0 0.5rem 0; font-size: 1.5rem; color: #111827; }
-        p { margin: 0; color: #6b7280; }
-        .error-message {
-          padding: 0.75rem; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; color: #dc2626; font-size: 0.95rem;
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
-        .actions { display: flex; gap: 0.75rem; margin-top: 1.25rem; }
-        .primary {
-          flex: 1; background: #1a1a1a; color: #fff; border: none; border-radius: 10px; padding: 0.75rem 1rem; font-weight: 600; cursor: pointer;
-        }
-        .primary:disabled { opacity: 0.6; cursor: not-allowed; }
-        .secondary {
-          flex: 1; background: #f8fafc; color: #64748b; border: 2px solid #e2e8f0; border-radius: 10px; padding: 0.75rem 1rem; font-weight: 600; cursor: pointer;
+
+        p {
+          color: #64748b;
+          font-size: 1rem;
+          margin: 0.25rem 0;
         }
       `}</style>
     </div>
