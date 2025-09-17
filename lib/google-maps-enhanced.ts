@@ -93,9 +93,9 @@ export class GoogleMapsClient {
   private baseUrl = 'https://maps.googleapis.com/maps/api';
 
   constructor() {
-    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
-      throw new Error('GOOGLE_MAPS_API_KEY is not configured');
+      throw new Error('NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is not configured');
     }
     this.apiKey = apiKey;
   }
