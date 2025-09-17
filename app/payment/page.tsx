@@ -673,14 +673,14 @@ function PaymentPageInner() {
       }
       
       const idToken = await (await import('../../lib/firebase')).auth.currentUser?.getIdToken(true).catch(() => null);
-      const res = await fetch('/api/stripe/checkout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
-        },
-        body: JSON.stringify({ bookingId: bookingDetails.id }),
-      });
+           const res = await fetch('/api/stripe/checkout-temp', {
+             method: 'POST',
+             headers: {
+               'Content-Type': 'application/json',
+               ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+             },
+             body: JSON.stringify({ bookingId: bookingDetails.id }),
+           });
       
       const data = await res.json();
       if (!res.ok || !data?.url) {

@@ -105,7 +105,7 @@ export default function BookingPage() {
       // Redirect directly to Stripe Hosted Checkout
       try {
         const idToken = await (await import('../../lib/firebase')).auth.currentUser?.getIdToken(true).catch(() => null);
-        const res = await fetch('/api/stripe/checkout', {
+        const res = await fetch('/api/stripe/checkout-temp', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
