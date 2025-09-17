@@ -525,7 +525,6 @@ export default function Home() {
               visibility: isMenuOpen ? 'visible' : 'hidden',
               transform: isMenuOpen ? 'translateY(0) scale(1) rotateX(0deg)' : 'translateY(-12px) scale(0.95) rotateX(-10deg)',
               transition: 'all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.4), 0 8px 25px rgba(0, 0, 0, 0.2)',
               zIndex: 1001,
               marginTop: '0.5rem',
               scrollbarWidth: 'thin',
