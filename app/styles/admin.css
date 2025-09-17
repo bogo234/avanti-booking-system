@@ -40,6 +40,12 @@
   align-items: center;
 }
 
+.admin-header-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
 .admin-header-content h1 {
   color: white;
   font-size: 1.75rem;
@@ -51,6 +57,23 @@
   color: rgba(255, 255, 255, 0.7);
   font-size: 1rem;
   margin: 0;
+}
+
+.home-btn {
+  padding: 0.75rem 1.5rem;
+  background: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 0.5rem;
+  color: #81c784;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.home-btn:hover {
+  background: rgba(76, 175, 80, 0.2);
+  border-color: rgba(76, 175, 80, 0.5);
 }
 
 .logout-btn {

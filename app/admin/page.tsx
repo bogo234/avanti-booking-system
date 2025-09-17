@@ -44,9 +44,17 @@ export default function AdminPage() {
           <h1>Admin Panel</h1>
           <p>Hantera användare och system</p>
         </div>
-        <button onClick={handleLogout} className="logout-btn">
-          Logga ut
-        </button>
+        <div className="admin-header-actions">
+          <button 
+            onClick={() => router.push('/')} 
+            className="home-btn"
+          >
+            Till huvudsidan
+          </button>
+          <button onClick={handleLogout} className="logout-btn">
+            Logga ut
+          </button>
+        </div>
       </div>
 
       <AdminDashboard />
