@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminAuth, getAdminDb, verifyAuthToken } from '../../../../lib/firebase-admin';
+import { authRateLimit } from '../../../../lib/rate-limit';
 import { z } from 'zod';
 
 // Validation schema för session-operationer
