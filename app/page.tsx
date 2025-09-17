@@ -283,9 +283,27 @@ export default function Home() {
           background: rgba(79, 195, 247, 0.5);
         }
         
-        /* Smooth scrolling */
+        /* Smooth scrolling and ensure proper display */
         .dropdown-menu {
           scroll-behavior: smooth;
+          display: block !important;
+          position: absolute !important;
+          z-index: 9999 !important;
+        }
+        
+        /* Ensure menu items are visible */
+        .dropdown-menu a {
+          display: block !important;
+          color: rgba(255, 255, 255, 0.9) !important;
+          text-decoration: none !important;
+          padding: 0.75rem 1rem !important;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+          transition: all 0.2s ease !important;
+        }
+        
+        .dropdown-menu a:hover {
+          background-color: rgba(79, 195, 247, 0.1) !important;
+          color: rgba(255, 255, 255, 1) !important;
         }
         
         /* Enhanced domino animation for menu items */
@@ -498,6 +516,8 @@ export default function Home() {
               borderRadius: '0.75rem',
               padding: '0.75rem 0',
               minWidth: '200px',
+              maxWidth: '280px',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4), 0 8px 16px rgba(0, 0, 0, 0.2)',
               textAlign: 'left',
               maxHeight: '70vh',
               overflowY: 'auto',
