@@ -77,7 +77,7 @@ function getClientIP(req: NextRequest): string {
   }
   
   // Fallback to connection IP
-  return req.ip || 'unknown';
+  return 'unknown';
 }
 
 // Predefined rate limiters
