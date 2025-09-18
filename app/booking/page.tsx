@@ -43,11 +43,21 @@ export default function BookingPage() {
   const handleBookingSubmit = async (booking: BookingRequest) => {
     setIsBooking(true);
     
+    // Lägg till timeout för hela bokningsprocessen
+    const bookingTimeout = setTimeout(() => {
+      console.error('Booking process timeout - taking too long');
+      setIsBooking(false);
+      alert('Bokningsprocessen tog för lång tid. Försök igen eller kontakta support.');
+    }, 30000); // 30 sekunder timeout
+    
     try {
+      console.log('Starting booking submission...');
       
       if (!user) {
         throw new Error('Du måste vara inloggad för att göra en bokning');
       }
+
+      console.log('User authenticated:', user.uid);
 
       // Create booking in Firebase with authenticated user data
       const bookingData = {
@@ -72,7 +82,9 @@ export default function BookingPage() {
         paymentStatus: 'pending'
       };
       
+      console.log('Creating booking in Firebase...');
       const bookingId = await firebaseOperations.create('bookings', bookingData);
+      console.log('Booking created with ID:', bookingId);
       setBookingId(bookingId);
 
       // Create notification for booking creation
@@ -104,34 +116,79 @@ export default function BookingPage() {
       
       // Redirect directly to Stripe Hosted Checkout
       try {
-        const idToken = await (await import('../../lib/firebase')).auth.currentUser?.getIdToken(true).catch(() => null);
+        console.log('Creating Stripe checkout session...');
+        
+        // Förbättrad ID token hämtning med bättre felhantering
+        let idToken = null;
+        try {
+          const { auth } = await import('../../lib/firebase');
+          if (auth.currentUser) {
+            idToken = await auth.currentUser.getIdToken(true);
+            console.log('ID token obtained successfully');
+          } else {
+            console.error('No current user found');
+            throw new Error('Du måste vara inloggad för att betala');
+          }
+        } catch (tokenError) {
+          console.error('Failed to get ID token:', tokenError);
+          throw new Error('Autentisering misslyckades. Logga in igen och försök på nytt.');
+        }
+        
+        if (!idToken) {
+          throw new Error('Kunde inte verifiera din identitet. Logga in igen och försök på nytt.');
+        }
+        
         const res = await fetch('/api/stripe/checkout', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+            'Authorization': `Bearer ${idToken}`,
           },
           body: JSON.stringify({ bookingId }),
         });
+        
+        console.log('Stripe response status:', res.status);
         const data = await res.json();
-        if (!res.ok || !data?.url) {
-          if (data?.details) {
-            throw new Error(`${data.error}: ${data.details}`);
+        console.log('Stripe response data:', data);
+        
+        if (!res.ok) {
+          let errorMessage = 'Kunde inte skapa betalning';
+          if (data?.error) {
+            errorMessage = data.error;
+            if (data?.details) {
+              errorMessage += `: ${data.details}`;
+            }
           }
-          throw new Error(data?.error || 'Kunde inte skapa Stripe-betalning');
+          throw new Error(errorMessage);
         }
+        
+        if (!data?.url) {
+          throw new Error('Stripe returnerade ingen betalningslänk');
+        }
+        
+        console.log('Redirecting to Stripe...');
         // Direct redirect to Stripe
         window.location.replace(data.url as string);
-      } catch (e) {
-        console.error('Stripe checkout error:', e);
-        // Only fallback to payment page if Stripe completely fails
+      } catch (stripeError) {
+        console.error('Stripe checkout error:', stripeError);
+        
+        // Visa tydligt felmeddelande till användaren
+        const errorMessage = stripeError instanceof Error ? stripeError.message : 'Betalningssystemet är inte tillgängligt just nu';
+        alert(`Betalningsfel: ${errorMessage}\n\nDu kan fortfarande betala via betalningssidan.`);
+        
+        // Fallback to payment page
+        console.log('Falling back to payment page...');
         router.push(`/payment?bookingId=${bookingId}`);
       }
     } catch (error) {
       console.error('Booking creation error:', error);
-      alert(`Bokningen misslyckades: ${error instanceof Error ? error.message : 'Okänt fel'}. Försök igen.`);
+      const errorMessage = error instanceof Error ? error.message : 'Okänt fel';
+      alert(`Bokningen misslyckades: ${errorMessage}\n\nFörsök igen eller kontakta support om problemet kvarstår.`);
     } finally {
+      // Rensa timeout och säkerställ att laddningsindikatorn alltid stängs av
+      clearTimeout(bookingTimeout);
       setIsBooking(false);
+      console.log('Booking process completed, loading state reset');
     }
   };
 

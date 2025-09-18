@@ -21,8 +21,10 @@ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
 ## 3. API Restrictions (Recommended)
 1. Go to your API key in Google Cloud Console
 2. Set Application restrictions to "HTTP referrers"
-3. Add your domain: `localhost:3001/*`
-4. For production: `yourdomain.com/*`
+3. Add your local referrers:
+   - `http://localhost:3005/*`
+   - `http://127.0.0.1:3005/*`
+4. For production: `https://<your-domain>/*`
 
 ## 4. Billing Setup
 - Google Maps requires billing to be enabled

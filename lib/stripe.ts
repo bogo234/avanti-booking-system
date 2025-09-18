@@ -24,8 +24,12 @@ function validateStripeEnvironment() {
 function createStripeInstance(): Stripe {
   try {
     validateStripeEnvironment();
+    const secretKey = process.env.STRIPE_SECRET_KEY?.trim();
+    if (!secretKey) {
+      throw new Error('STRIPE_SECRET_KEY is not set or empty');
+    }
     // Use account default API version unless explicitly overridden in dashboard.
-    return new Stripe(process.env.STRIPE_SECRET_KEY!);
+    return new Stripe(secretKey);
   } catch (error) {
     console.error('Stripe initialization failed:', error);
     throw error;
@@ -37,13 +41,14 @@ export const stripe = createStripeInstance();
 
 // Export webhook secret with validation
 export function getWebhookSecret(): string {
-  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
+  if (!webhookSecret) {
     throw new Error(
       'STRIPE_WEBHOOK_SECRET is not set. ' +
       'Please set this in your Vercel dashboard under Settings > Environment Variables.'
     );
   }
-  return process.env.STRIPE_WEBHOOK_SECRET;
+  return webhookSecret;
 }
 
 // Export validation function for use in API routes

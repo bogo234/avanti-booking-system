@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { Loader } from "@googlemaps/js-api-loader";
+import { loadGoogleMaps, ensurePlacesLibraryLoaded } from "../../lib/google-maps-loader";
 
 interface PlaceDetails {
   address: string;
@@ -20,6 +20,21 @@ interface GooglePlacesAutocompleteProps {
   style?: React.CSSProperties;
 }
 
+interface Coordinates {
+  lat: number;
+  lng: number;
+}
+
+interface PlacePrediction {
+  place_id: string;
+  description: string;
+  structured_formatting: {
+    main_text: string;
+    secondary_text: string;
+  };
+  coordinates?: Coordinates;
+}
+
 export default function GooglePlacesAutocomplete({
   placeholder,
   value,
@@ -28,13 +43,9 @@ export default function GooglePlacesAutocomplete({
   style,
 }: GooglePlacesAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const autocompleteService = useRef<google.maps.places.AutocompleteService | null>(null);
-  const placesService = useRef<google.maps.places.PlacesService | null>(null);
-  const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null);
-
-  const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
+  const [suggestions, setSuggestions] = useState<PlacePrediction[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [overlayRect, setOverlayRect] = useState<{ top: number; left: number; width: number } | null>(null);
 
@@ -43,34 +54,6 @@ export default function GooglePlacesAutocomplete({
     if (!el) return;
     const rect = el.getBoundingClientRect();
     setOverlayRect({ top: rect.bottom + 2, left: rect.left, width: rect.width });
-  }, []);
-
-  useEffect(() => {
-    const initializeGoogleMaps = async () => {
-      try {
-        setError(null);
-        const loader = new Loader({
-          apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
-          version: "weekly",
-          libraries: ["places"],
-          language: "sv",
-          region: "SE",
-        });
-        await loader.load();
-        if (window.google && window.google.maps) {
-          autocompleteService.current = new window.google.maps.places.AutocompleteService();
-          const mapDiv = document.createElement("div");
-          placesService.current = new window.google.maps.places.PlacesService(mapDiv);
-          setIsLoaded(true);
-        }
-      } catch (err: any) {
-        setError(
-          "Google Maps API kunde inte laddas. Kontrollera din internetanslutning och att Places API är aktiverat."
-        );
-        setIsLoaded(false);
-      }
-    };
-    initializeGoogleMaps();
   }, []);
 
   useEffect(() => {
@@ -85,191 +68,167 @@ export default function GooglePlacesAutocomplete({
     };
   }, [showSuggestions, updateOverlayPosition]);
 
-  function ensureSessionToken() {
-    if (!sessionTokenRef.current) {
-      sessionTokenRef.current = new google.maps.places.AutocompleteSessionToken();
+  const fetchSuggestions = useCallback(async (input: string) => {
+    if (!input.trim() || input.length < 2) {
+      setSuggestions([]);
+      return;
     }
-    return sessionTokenRef.current;
-  }
 
-  function clearSessionToken() {
-    sessionTokenRef.current = null;
-  }
+    try {
+      await loadGoogleMaps();
+      ensurePlacesLibraryLoaded();
 
-  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const inputValue = e.target.value;
-    onChange(inputValue, { address: inputValue });
+      const service = new window.google!.maps.places.AutocompleteService();
+      const sessionToken = new window.google!.maps.places.AutocompleteSessionToken();
 
-    if (!isLoaded || !autocompleteService.current) return;
-
-    if (inputValue.trim().length >= 1) {
-      updateOverlayPosition();
-      const sessionToken = ensureSessionToken();
-      autocompleteService.current.getPlacePredictions(
+      service.getPlacePredictions(
         {
-          input: inputValue,
-          componentRestrictions: { country: "se" },
+          input,
+          language: 'sv',
+          componentRestrictions: { country: 'se' },
           sessionToken,
-          types: ["address"],
         },
         (predictions, status) => {
-          if (
-            (status === google.maps.places.PlacesServiceStatus.OK ||
-              status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) &&
-            Array.isArray(predictions)
-          ) {
-            setSuggestions(predictions);
-            setShowSuggestions(predictions.length > 0);
-          } else {
+          if (status !== window.google!.maps.places.PlacesServiceStatus.OK || !predictions) {
             setSuggestions([]);
-            setShowSuggestions(false);
+            return;
           }
+
+          const mapped: PlacePrediction[] = predictions.map((p) => ({
+            place_id: p.place_id!,
+            description: p.description!,
+            structured_formatting: {
+              main_text: p.structured_formatting?.main_text || p.description || '',
+              secondary_text: p.structured_formatting?.secondary_text || '',
+            },
+          }));
+          setSuggestions(mapped);
+          setError(null);
         }
       );
+    } catch (err: any) {
+      console.error("Error fetching suggestions:", err);
+      setError(err.message || "Kunde inte hämta adressförslag");
+      setSuggestions([]);
+    }
+  }, []);
+
+  // Hämta platsdetaljer inkl. koordinater via PlacesService (klientbiblioteket)
+  const getPlaceDetails = useCallback(async (placeId: string): Promise<PlaceDetails | null> => {
+    try {
+      await loadGoogleMaps();
+      ensurePlacesLibraryLoaded();
+      const mapDiv = document.createElement('div');
+      const map = new window.google!.maps.Map(mapDiv);
+      const places = new window.google!.maps.places.PlacesService(map);
+
+      const result: PlaceDetails | null = await new Promise((resolve) => {
+        places.getDetails({
+          placeId,
+          fields: ['formatted_address', 'geometry'],
+        }, (place, status) => {
+          if (status === window.google!.maps.places.PlacesServiceStatus.OK && place?.geometry?.location) {
+            resolve({
+              address: place.formatted_address || '',
+              coordinates: {
+                lat: place.geometry.location.lat(),
+                lng: place.geometry.location.lng(),
+              },
+            });
+          } else {
+            resolve(null);
+          }
+        });
+      });
+
+      return result;
+    } catch (err) {
+      console.error('Error fetching place details:', err);
+      return null;
+    }
+  }, []);
+
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value;
+    onChange(inputValue);
+    
+    if (inputValue.trim().length >= 2) {
+      fetchSuggestions(inputValue);
+      setShowSuggestions(true);
     } else {
       setSuggestions([]);
       setShowSuggestions(false);
     }
-  }
+  }, [onChange, fetchSuggestions]);
 
-  function handleSuggestionClick(prediction: google.maps.places.AutocompletePrediction) {
-    if (!placesService.current) return;
-    const sessionToken = ensureSessionToken();
-    placesService.current.getDetails(
-      {
-        placeId: prediction.place_id,
-        fields: ["formatted_address", "geometry", "name"],
-        sessionToken,
-      } as any,
-      (place, status) => {
-        if (status === google.maps.places.PlacesServiceStatus.OK && place) {
-          const formatted = place.formatted_address || prediction.description;
-          const coordinates = place.geometry?.location
-            ? {
-                lat: place.geometry.location.lat(),
-                lng: place.geometry.location.lng(),
-              }
-            : undefined;
-          onChange(formatted, { address: formatted, coordinates });
-          setShowSuggestions(false);
-          clearSessionToken();
-        }
-      }
-    );
-  }
+  const handleSuggestionClick = useCallback(async (suggestion: PlacePrediction) => {
+    setShowSuggestions(false);
+    setSuggestions([]);
 
-  function handleFocus() {
-    if (suggestions.length > 0 && isLoaded) {
-      updateOverlayPosition();
+    const details = await getPlaceDetails(suggestion.place_id);
+    onChange(suggestion.description, details || undefined);
+  }, [onChange, getPlaceDetails]);
+
+  const handleInputFocus = useCallback(() => {
+    if (suggestions.length > 0) {
       setShowSuggestions(true);
     }
-  }
+  }, [suggestions.length]);
 
-  function handleBlur() {
+  const handleInputBlur = useCallback(() => {
+    // Delay hiding suggestions to allow clicking on them
     setTimeout(() => setShowSuggestions(false), 200);
-  }
-
-  const inputNode = (
-    <input
-      ref={inputRef}
-      type="text"
-      value={value}
-      onChange={handleInputChange}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
-      placeholder={placeholder}
-      className={
-        className ||
-        "w-full px-4 py-3 border border-stone-200 rounded-xl focus:ring-2 focus:ring-stone-900 focus:border-transparent transition-all normal-case"
-      }
-      style={{ ...(style || {}), textTransform: "none" }}
-      autoComplete="off"
-      inputMode="search"
-    />
-  );
-
-  const suggestionsList = (
-    <div
-      style={{
-        position: "fixed",
-        top: overlayRect?.top ?? 0,
-        left: overlayRect?.left ?? 0,
-        width: overlayRect?.width ?? undefined,
-        backgroundColor: "white",
-        border: "1px solid #e5e7eb",
-        borderRadius: "0.5rem",
-        marginTop: 2,
-        maxHeight: 320,
-        overflowY: "auto",
-        zIndex: 2147483647,
-        boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
-      }}
-      onMouseDown={(e) => e.preventDefault()}
-    >
-      {suggestions.map((suggestion, index) => (
-        <div
-          key={suggestion.place_id}
-          onClick={() => handleSuggestionClick(suggestion)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "10px 12px",
-            cursor: "pointer",
-            color: "#1f2937",
-            borderBottom: index < suggestions.length - 1 ? "1px solid #e5e7eb" : "none",
-            transition: "background-color 0.15s ease",
-            textTransform: "none",
-            lineHeight: 1.35,
-            whiteSpace: "normal",
-            wordBreak: "break-word",
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLDivElement).style.backgroundColor = "#f3f4f6";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLDivElement).style.backgroundColor = "transparent";
-          }}
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="#9CA3AF"
-            xmlns="http://www.w3.org/2000/svg"
-            style={{ flex: "0 0 auto" }}
-          >
-            <path d="M12 2C8.14 2 5 5.14 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.86-3.14-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/>
-          </svg>
-          <span style={{ textTransform: "none" }}>{suggestion.description}</span>
-        </div>
-      ))}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          padding: "6px 10px",
-          fontSize: 10,
-          color: "#6B7280",
-          borderTop: suggestions.length ? "1px solid #e5e7eb" : "none",
-          backgroundColor: "#fff",
-          textTransform: "none",
-        }}
-      >
-        powered by <span style={{ marginLeft: 4, fontWeight: 600, color: "#4285F4" }}>Google</span>
-      </div>
-    </div>
-  );
+  }, []);
 
   return (
-    <div className="relative w-full">
-      {inputNode}
-      {error && <div className="text-red-500 text-xs mt-1">{error}</div>}
-      {!isLoaded && !error && (
-        <div className="text-amber-500 text-xs mt-1">Laddar Google Maps API...</div>
+    <div className="relative">
+      <input
+        ref={inputRef}
+        type="text"
+        value={value}
+        onChange={handleInputChange}
+        onFocus={handleInputFocus}
+        onBlur={handleInputBlur}
+        placeholder={placeholder}
+        className={className}
+        style={style}
+        disabled={!isLoaded}
+      />
+      
+      {error && (
+        <div className="text-red-500 text-xs mt-1">
+          {error}
+        </div>
       )}
-      {showSuggestions && suggestions.length > 0 && isLoaded && overlayRect &&
-        createPortal(suggestionsList, document.body)}
+
+      {showSuggestions && suggestions.length > 0 && overlayRect && (
+        createPortal(
+          <div
+            className="absolute z-50 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto"
+            style={{
+              top: overlayRect.top,
+              left: overlayRect.left,
+              width: overlayRect.width,
+            }}
+          >
+            {suggestions.map((suggestion) => (
+              <div
+                key={suggestion.place_id}
+                className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                onClick={() => handleSuggestionClick(suggestion)}
+              >
+                <div className="font-medium text-gray-900">
+                  {suggestion.structured_formatting.main_text}
+                </div>
+                <div className="text-sm text-gray-500">
+                  {suggestion.structured_formatting.secondary_text}
+                </div>
+              </div>
+            ))}
+          </div>,
+          document.body
+        )
+      )}
     </div>
   );
 }

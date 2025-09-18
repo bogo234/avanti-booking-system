@@ -54,6 +54,21 @@ export async function POST(req: NextRequest) {
     // Build a robust origin for redirect URLs
     const origin = process.env.NEXT_PUBLIC_SITE_URL || req.headers.get('origin') || req.nextUrl.origin;
 
+    // Enhanced metadata with comprehensive Firebase data
+    const enhancedMetadata = {
+      bookingId,
+      userId,
+      customerId: booking.customerId || userId,
+      customerEmail: booking.customerEmail || '',
+      service: booking.service || 'standard',
+      licensePlate: booking.licensePlate || '',
+      pickupAddress: booking.pickup?.address || '',
+      destinationAddress: booking.destination?.address || '',
+      driverId: booking.driver?.id || '',
+      driverName: booking.driver?.name || '',
+      paymentStatus: booking.paymentStatus || 'pending'
+    };
+
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       currency: 'sek',
@@ -65,21 +80,32 @@ export async function POST(req: NextRequest) {
             currency: 'sek',
             unit_amount: unitAmount,
             product_data: {
-              name: `Bokning ${String(bookingId).slice(-8)}`,
+              name: `Avanti ${booking.service || 'Standard'} - ${String(bookingId).slice(-8)}`,
               description: `${booking.pickup?.address || ''} → ${booking.destination?.address || ''}`.trim(),
+              metadata: {
+                service: booking.service || 'standard',
+                licensePlate: booking.licensePlate || '',
+                driverName: booking.driver?.name || 'Ej tilldelad'
+              }
             },
           },
           quantity: 1,
         },
       ],
       client_reference_id: bookingId,
-      metadata: { bookingId, userId },
+      metadata: enhancedMetadata,
       customer_email: booking?.customerEmail || undefined,
       success_url: `${origin}/payment/success?bookingId=${bookingId}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/payment?bookingId=${bookingId}`,
       billing_address_collection: 'auto',
       allow_promotion_codes: false,
       submit_type: 'pay',
+      // Enhanced customer information
+      customer_creation: 'if_required',
+      payment_intent_data: {
+        metadata: enhancedMetadata,
+        description: `Avanti transport: ${booking.pickup?.address || ''} → ${booking.destination?.address || ''}`
+      }
     });
 
     return NextResponse.json({ url: session.url }, { status: 200 });

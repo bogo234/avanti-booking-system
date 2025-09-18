@@ -23,6 +23,11 @@ interface BookingDetails {
   pickupTime: string;
   price: number;
   service: string;
+  customerEmail: string;
+  customerId: string;
+  licensePlate: string;
+  paymentStatus: string;
+  driver: any;
 }
 
 function PaymentForm({ bookingDetails, selectedMethod }: { bookingDetails: BookingDetails; selectedMethod?: 'applepay' | 'card' }) {
@@ -265,6 +270,29 @@ function PaymentForm({ bookingDetails, selectedMethod }: { bookingDetails: Booki
             <div className="detail-row">
               <span className="label">Service:</span>
               <span className="value">{bookingDetails.service}</span>
+            </div>
+            {bookingDetails.licensePlate && (
+              <div className="detail-row">
+                <span className="label">Registreringsnummer:</span>
+                <span className="value">{bookingDetails.licensePlate}</span>
+              </div>
+            )}
+            {bookingDetails.driver && (
+              <div className="detail-row">
+                <span className="label">Förare:</span>
+                <span className="value">{bookingDetails.driver.name}</span>
+              </div>
+            )}
+            <div className="detail-row">
+              <span className="label">Betalningsstatus:</span>
+              <span className="value" style={{ 
+                color: bookingDetails.paymentStatus === 'paid' ? '#10b981' : 
+                       bookingDetails.paymentStatus === 'pending' ? '#f59e0b' : '#ef4444' 
+              }}>
+                {bookingDetails.paymentStatus === 'paid' ? 'Betald' : 
+                 bookingDetails.paymentStatus === 'pending' ? 'Väntar på betalning' : 
+                 bookingDetails.paymentStatus}
+              </span>
             </div>
             <div className="detail-row total">
               <span className="label">Totalt:</span>
@@ -620,11 +648,17 @@ function PaymentPageInner() {
           throw new Error('Booking not found');
         }
 
+        // Extract comprehensive booking data from Firebase
         const pickupAddress = (booking as any)?.pickup?.address ?? '';
         const pickupTime = (booking as any)?.pickup?.time ?? new Date().toISOString();
         const destinationAddress = (booking as any)?.destination?.address ?? '';
         const price = typeof (booking as any)?.price === 'number' ? (booking as any).price : 0;
         const service = (booking as any)?.service || 'Avanti Biltransport';
+        const customerEmail = (booking as any)?.customerEmail ?? '';
+        const customerId = (booking as any)?.customerId ?? '';
+        const licensePlate = (booking as any)?.licensePlate ?? '';
+        const paymentStatus = (booking as any)?.paymentStatus ?? 'pending';
+        const driver = (booking as any)?.driver ?? null;
 
         setBookingDetails({
           id: bookingId,
@@ -632,7 +666,12 @@ function PaymentPageInner() {
           destination: destinationAddress,
           pickupTime: pickupTime,
           price: price,
-          service
+          service,
+          customerEmail,
+          customerId,
+          licensePlate,
+          paymentStatus,
+          driver
         });
         setError(''); // Clear any previous errors
         setLoading(false);

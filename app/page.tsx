@@ -1046,7 +1046,7 @@ export default function Home() {
                   </label>
                   <GooglePlacesAutocomplete
                     value={pickupLocation}
-                    onChange={setPickupLocation}
+                    onChange={(value) => setPickupLocation(value)}
                     placeholder="Ange vart bilen hämtas"
                     style={{
                       width: '100%',
@@ -1079,7 +1079,7 @@ export default function Home() {
                   </label>
                   <GooglePlacesAutocomplete
                     value={destination}
-                    onChange={setDestination}
+                    onChange={(value) => setDestination(value)}
                     placeholder="Ange vart bilen lämnas"
                     style={{
                       width: '100%',

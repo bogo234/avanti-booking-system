@@ -12,7 +12,6 @@
     "seed-data": "node scripts/seed-data.js"
   },
   "dependencies": {
-    "@googlemaps/js-api-loader": "^1.16.10",
     "@radix-ui/react-slot": "^1.2.3",
     "@stripe/react-stripe-js": "^4.0.1",
     "@stripe/stripe-js": "^7.9.0",

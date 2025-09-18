@@ -12,8 +12,8 @@ function getPrivateKey(): string {
 export function getAdminApp(): admin.app.App {
   if (app) return app;
 
-  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const projectId = (process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID)?.trim();
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL?.trim();
 
   if (!projectId) {
     throw new Error('FIREBASE_PROJECT_ID is missing');
@@ -74,8 +74,8 @@ export async function getUserRole(uid: string): Promise<'customer' | 'driver' | 
 // Helper function to check if Firebase Admin is properly configured
 export function isFirebaseAdminConfigured(): boolean {
   try {
-    const projectId = process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+    const projectId = (process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID)?.trim();
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL?.trim();
     const privateKey = process.env.FIREBASE_PRIVATE_KEY;
     
     return !!(projectId && clientEmail && privateKey);

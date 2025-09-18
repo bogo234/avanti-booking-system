@@ -106,45 +106,61 @@ export default function ModernBookingForm({ onBookingSubmit, isLoading = false }
       
       const fetchCoordinatesForAddresses = async () => {
         if (pickupParam && destinationParam) {
+          console.log('URL parameters found, starting coordinate loading...');
           setIsLoadingCoordinates(true);
           setCoordinateError('');
           
+                 // Säkerställ att laddningsindikatorn stängs av efter max 2 sekunder
+                 const safetyTimeout = setTimeout(() => {
+                   console.log('Safety timeout reached, forcing loading state to false');
+                   setIsLoadingCoordinates(false);
+                   setStep(1);
+                 }, 2000); // Reduced from 3000 to 2000 for faster loading
+          
           try {
-            // Vänta tills Google Maps API är laddat
-            await new Promise<void>((resolve) => {
-              if ((window as any).google?.maps) {
-                resolve();
-              } else {
-                const checkInterval = setInterval(() => {
-                  if ((window as any).google?.maps) {
-                    clearInterval(checkInterval);
-                    resolve();
-                  }
-                }, 100);
-                
-                // Timeout efter 10 sekunder
-                setTimeout(() => {
-                  clearInterval(checkInterval);
-                  resolve();
-                }, 10000);
-              }
-            });
-            
             const decodedPickup = decodeURIComponent(pickupParam);
             const decodedDestination = decodeURIComponent(destinationParam);
             
+            console.log('Decoded addresses:', { decodedPickup, decodedDestination });
             setPickupAddress(decodedPickup);
             setDestinationAddress(decodedDestination);
+            
+            // Vänta tills Google Maps API är laddat (med timeout)
+            await new Promise<void>((resolve, reject) => {
+              if ((window as any).google?.maps) {
+                console.log('Google Maps API already loaded');
+                resolve();
+                return;
+              }
+              
+              console.log('Waiting for Google Maps API...');
+              const checkInterval = setInterval(() => {
+                if ((window as any).google?.maps) {
+                  console.log('Google Maps API loaded');
+                  clearInterval(checkInterval);
+                  resolve();
+                }
+              }, 100);
+              
+                   // Timeout efter 1 sekund (mycket kortare timeout)
+                   setTimeout(() => {
+                     console.log('Google Maps API timeout');
+                     clearInterval(checkInterval);
+                     reject(new Error('Google Maps API timeout - fortsätter utan automatisk koordinathämtning'));
+                   }, 1000);
+            });
             
             // Hämta koordinater från Google Geocoding API
             const { geocodeAddress } = await import('../../lib/geocoding');
             
             try {
+              console.log('Fetching coordinates...');
               const [pickupCoords, destCoords] = await Promise.all([
                 geocodeAddress(decodedPickup),
                 geocodeAddress(decodedDestination)
               ]);
               
+              console.log('Coordinates fetched successfully');
               setPickupCoordinates(pickupCoords);
               setDestinationCoordinates(destCoords);
               
@@ -152,16 +168,26 @@ export default function ModernBookingForm({ onBookingSubmit, isLoading = false }
               setStep(1);
             } catch (geocodeError) {
               console.error('Geocoding error:', geocodeError);
-              setCoordinateError('Adresserna kunde inte verifieras automatiskt. Välj adresser från förslagslistan för att fortsätta.');
+              setCoordinateError('Adresserna kunde inte verifieras automatiskt. Du kan fortfarande fortsätta genom att välja adresser från förslagslistan.');
               // Sätt adresserna ändå så användaren kan välja från dropdown
               setStep(1);
             }
           } catch (error) {
             console.error('Error loading coordinates:', error);
-            setCoordinateError('Ett fel uppstod vid laddning av adresser.');
+            const errorMessage = error instanceof Error ? error.message : 'Ett fel uppstod vid laddning av adresser';
+            setCoordinateError(`${errorMessage}. Du kan fortfarande fortsätta genom att välja adresser manuellt.`);
+            // Fortsätt ändå till steg 1
+            setStep(1);
           } finally {
+            // Rensa safety timeout och säkerställ att laddningsindikatorn alltid stängs av
+            clearTimeout(safetyTimeout);
             setIsLoadingCoordinates(false);
+            console.log('Coordinate loading completed, loading state reset');
           }
+        } else {
+          // Inga URL-parametrar, gå direkt till steg 1
+          console.log('No URL parameters, going directly to step 1');
+          setStep(1);
         }
       };
       

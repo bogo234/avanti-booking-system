@@ -15,33 +15,29 @@ export async function geocodeAddress(address: string): Promise<Coordinates> {
     throw new Error('Geocoding can only be performed in browser environment');
   }
 
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-  if (!apiKey) {
-    throw new Error('Google Maps API key is missing. Set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in .env.local');
-  }
+  const { loadGoogleMaps } = await import('./google-maps-loader');
+  await loadGoogleMaps();
 
-  const params = new URLSearchParams({
-    address,
-    key: apiKey,
-    language: 'sv',
-    region: 'SE',
-    components: 'country:SE',
+  const geocoder = new window.google!.maps.Geocoder();
+
+  const result: Coordinates | null = await new Promise((resolve) => {
+    geocoder.geocode({ address, region: 'SE', language: 'sv', componentRestrictions: { country: 'se' as any } as any }, (results, status) => {
+      if (status === 'OK' && results && results[0]?.geometry?.location) {
+        resolve({
+          lat: results[0].geometry.location.lat(),
+          lng: results[0].geometry.location.lng(),
+        });
+      } else {
+        resolve(null);
+      }
+    });
   });
 
-  const url = `https://maps.googleapis.com/maps/api/geocode/json?${params.toString()}`;
-
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Geocoding REST request failed with status ${response.status}`);
+  if (!result) {
+    throw new Error('Geocoding misslyckades eller hittade inga koordinater');
   }
 
-  const data: any = await response.json();
-  if (data.status === 'OK' && data.results?.[0]?.geometry?.location) {
-    const loc = data.results[0].geometry.location;
-    return { lat: loc.lat, lng: loc.lng };
-  }
-
-  throw new Error(`Geocoding REST failed for address "${address}". Status: ${data.status}`);
+  return result;
 }
 
 /**

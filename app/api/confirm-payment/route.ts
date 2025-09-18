@@ -64,14 +64,32 @@ export async function POST(request: NextRequest) {
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
     if (paymentIntent.status === 'succeeded') {
-      // Update booking with payment confirmation
+      // Update booking with comprehensive payment confirmation
       const adminDb = getAdminDb();
       const bookingRef = adminDb.collection('bookings').doc(bookingId);
+      
+      // Get payment method details
+      const paymentMethod = paymentIntent.payment_method as Stripe.PaymentMethod;
+      const paymentMethodDetails = {
+        type: paymentMethod?.type || 'unknown',
+        card: paymentMethod?.card ? {
+          brand: paymentMethod.card.brand,
+          last4: paymentMethod.card.last4,
+          exp_month: paymentMethod.card.exp_month,
+          exp_year: paymentMethod.card.exp_year
+        } : null,
+        billing_details: paymentMethod?.billing_details || null
+      };
+
       await bookingRef.update({
         paymentStatus: 'paid',
         paymentId: paymentIntent.id,
         paymentMethod: paymentIntent.payment_method,
+        paymentMethodDetails: paymentMethodDetails,
         paidAt: new Date(),
+        amountPaid: paymentIntent.amount / 100, // Convert back to SEK
+        currency: paymentIntent.currency,
+        stripeCustomerId: paymentIntent.customer,
         updatedAt: new Date(),
       });
 

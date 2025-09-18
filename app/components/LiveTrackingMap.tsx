@@ -1,14 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Loader } from '@googlemaps/js-api-loader';
+import { loadGoogleMaps } from '../../lib/google-maps-loader';
 
 interface LiveTrackingMapProps {
   pickupLocation: { lat: number; lng: number; address: string };
   destinationLocation: { lat: number; lng: number; address: string };
   driverLocation?: { lat: number; lng: number };
   bookingStatus: string;
-  onMapReady?: (map: google.maps.Map) => void;
+  onMapReady?: () => void;
 }
 
 export default function LiveTrackingMap({ 
@@ -19,27 +19,33 @@ export default function LiveTrackingMap({
   onMapReady
 }: LiveTrackingMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
-  const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [directionsService, setDirectionsService] = useState<google.maps.DirectionsService | null>(null);
-  const [directionsRenderer, setDirectionsRenderer] = useState<google.maps.DirectionsRenderer | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [routeInfo, setRouteInfo] = useState<{
+    distance: string;
+    duration: string;
+  } | null>(null);
 
   useEffect(() => {
     const initializeMap = async () => {
       if (!mapRef.current) return;
 
       try {
-    const loader = new Loader({
-          apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
-      version: 'weekly',
-      libraries: ['places', 'geometry']
-    });
+        await loadGoogleMaps({ libraries: ['geometry'] });
+        createMap();
+      } catch (err) {
+        console.error('Error loading Google Maps:', err);
+        setError('Kunde inte ladda Google Maps. Kontrollera API-nyckeln.');
+        setLoading(false);
+      }
+    };
 
-        const google = await loader.load();
+    const createMap = () => {
+      if (!mapRef.current || !window.google) return;
 
-        // Create map
-        const mapInstance = new google.maps.Map(mapRef.current, {
+      try {
+        // Create map using official Google Maps API
+        const mapInstance = new window.google.maps.Map(mapRef.current, {
           center: pickupLocation,
           zoom: 13,
           styles: [
@@ -66,9 +72,9 @@ export default function LiveTrackingMap({
           ]
         });
 
-        // Initialize directions service and renderer
-        const directionsServiceInstance = new google.maps.DirectionsService();
-        const directionsRendererInstance = new google.maps.DirectionsRenderer({
+        // Initialize directions service and renderer using official API
+        const directionsServiceInstance = new window.google.maps.DirectionsService();
+        const directionsRendererInstance = new window.google.maps.DirectionsRenderer({
           suppressMarkers: true,
           polylineOptions: {
             strokeColor: '#3b82f6',
@@ -79,272 +85,156 @@ export default function LiveTrackingMap({
 
         directionsRendererInstance.setMap(mapInstance);
 
-        setMap(mapInstance);
-        setDirectionsService(directionsServiceInstance);
-        setDirectionsRenderer(directionsRendererInstance);
+        // Add markers using official API
+        const pickupMarker = new window.google.maps.Marker({
+          position: pickupLocation,
+          map: mapInstance,
+          title: 'Upphämtning',
+          icon: {
+            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" fill="#10b981" stroke="#ffffff" stroke-width="2"/>
+                <path d="M12 6v6l4 2" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            `),
+            scaledSize: new window.google.maps.Size(24, 24),
+            anchor: new window.google.maps.Point(12, 12)
+          }
+        });
+
+        const destinationMarker = new window.google.maps.Marker({
+          position: destinationLocation,
+          map: mapInstance,
+          title: 'Destination',
+          icon: {
+            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" fill="#ef4444" stroke="#ffffff" stroke-width="2"/>
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#ffffff"/>
+              </svg>
+            `),
+            scaledSize: new window.google.maps.Size(24, 24),
+            anchor: new window.google.maps.Point(12, 12)
+          }
+        });
+
+        // Add driver marker if available
+        if (driverLocation) {
+          const driverMarker = new window.google.maps.Marker({
+            position: driverLocation,
+            map: mapInstance,
+            title: 'Förare',
+            icon: {
+              url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="10" fill="#3b82f6" stroke="#ffffff" stroke-width="2"/>
+                  <path d="M12 2a3 3 0 0 1 3 3c0 1.5-1.5 3-3 3s-3-1.5-3-3a3 3 0 0 1 3-3z" fill="#ffffff"/>
+                  <path d="M12 8c-2.5 0-4.5 2-4.5 4.5v3h9v-3c0-2.5-2-4.5-4.5-4.5z" fill="#ffffff"/>
+                </svg>
+              `),
+              scaledSize: new window.google.maps.Size(24, 24),
+              anchor: new window.google.maps.Point(12, 12)
+            }
+          });
+        }
+
+        // Calculate route using official Directions API
+        if (directionsServiceInstance) {
+          directionsServiceInstance.route({
+            origin: pickupLocation,
+            destination: destinationLocation,
+            travelMode: window.google.maps.TravelMode.DRIVING,
+            avoidHighways: false,
+            avoidTolls: false
+          }, (result, status) => {
+            if (status === window.google.maps.DirectionsStatus.OK && result) {
+              directionsRendererInstance.setDirections(result);
+              
+              const route = result.routes[0];
+              const leg = route.legs[0];
+              
+              setRouteInfo({
+                distance: leg.distance.text,
+                duration: leg.duration.text
+              });
+            }
+          });
+        }
 
         if (onMapReady) {
-          onMapReady(mapInstance);
+          onMapReady();
         }
 
         setLoading(false);
       } catch (err) {
-        console.error('Error loading Google Maps:', err);
-        setError('Kunde inte ladda Google Maps. Kontrollera API-nyckeln.');
+        console.error('Error creating map:', err);
+        setError('Kunde inte skapa karta.');
         setLoading(false);
       }
     };
 
     initializeMap();
-  }, [pickupLocation, onMapReady]);
-
-  useEffect(() => {
-    if (!map || !directionsService || !directionsRenderer) return;
-
-    // Add pickup marker
-    const pickupMarker = new google.maps.Marker({
-      position: pickupLocation,
-      map: map,
-      title: 'Upphämtning',
-      icon: {
-        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-          <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="16" cy="16" r="12" fill="#10b981" stroke="#ffffff" stroke-width="2"/>
-            <text x="16" y="20" text-anchor="middle" fill="white" font-size="12" font-weight="bold">P</text>
-          </svg>
-        `),
-        scaledSize: new google.maps.Size(32, 32)
-      }
-    });
-
-    // Add destination marker
-    const destinationMarker = new google.maps.Marker({
-      position: destinationLocation,
-      map: map,
-      title: 'Destination',
-      icon: {
-        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-          <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="16" cy="16" r="12" fill="#ef4444" stroke="#ffffff" stroke-width="2"/>
-            <text x="16" y="20" text-anchor="middle" fill="white" font-size="12" font-weight="bold">D</text>
-          </svg>
-        `),
-        scaledSize: new google.maps.Size(32, 32)
-      }
-    });
-
-    // Add driver marker if location is available
-    let driverMarker: google.maps.Marker | null = null;
-    if (driverLocation) {
-      driverMarker = new google.maps.Marker({
-        position: driverLocation,
-      map: map,
-        title: 'Din förare',
-      icon: {
-        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-            <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="16" cy="16" r="12" fill="#3b82f6" stroke="#ffffff" stroke-width="2"/>
-              <text x="16" y="20" text-anchor="middle" fill="white" font-size="12" font-weight="bold">🚗</text>
-          </svg>
-        `),
-          scaledSize: new google.maps.Size(32, 32)
-        }
-      });
-    }
-
-    // Calculate and display route
-    const calculateRoute = () => {
-      const request: google.maps.DirectionsRequest = {
-        origin: pickupLocation,
-        destination: destinationLocation,
-        travelMode: google.maps.TravelMode.DRIVING,
-        avoidHighways: false,
-        avoidTolls: false
-      };
-
-      directionsService.route(request, (result, status) => {
-        if (status === google.maps.DirectionsStatus.OK && result) {
-          directionsRenderer.setDirections(result);
-          
-          // Fit map to show entire route
-          const bounds = new google.maps.LatLngBounds();
-          result.routes[0].legs.forEach(leg => {
-            bounds.extend(leg.start_location);
-            bounds.extend(leg.end_location);
-          });
-          map.fitBounds(bounds);
-        }
-      });
-    };
-
-    calculateRoute();
-
-    // Update driver location periodically (simulate real-time updates)
-    const updateDriverLocation = () => {
-      if (driverLocation && driverMarker) {
-        // Simulate driver movement along route
-        const newLocation = {
-          lat: driverLocation.lat + (Math.random() - 0.5) * 0.001,
-          lng: driverLocation.lng + (Math.random() - 0.5) * 0.001
-        };
-        
-        driverMarker.setPosition(newLocation);
-      }
-    };
-
-    const interval = setInterval(updateDriverLocation, 3000);
-
-    return () => {
-      clearInterval(interval);
-      if (pickupMarker) pickupMarker.setMap(null);
-      if (destinationMarker) destinationMarker.setMap(null);
-      if (driverMarker) driverMarker.setMap(null);
-    };
-  }, [map, directionsService, directionsRenderer, pickupLocation, destinationLocation, driverLocation]);
+  }, [pickupLocation, destinationLocation, driverLocation, onMapReady]);
 
   if (loading) {
     return (
-      <div className="map-loading">
-        <div className="loading-spinner"></div>
-        <p>Laddar karta...</p>
+      <div className="w-full h-96 bg-gray-100 rounded-lg flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+          <p className="text-gray-600">Laddar karta...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="map-error">
-        <p>❌ {error}</p>
-        <button onClick={() => window.location.reload()}>
-          Försök igen
-        </button>
+      <div className="w-full h-96 bg-red-50 rounded-lg flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-2">❌ {error}</p>
+          <p className="text-sm text-gray-600">Kontrollera att Google Maps API-nyckeln är korrekt konfigurerad.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="live-tracking-map">
-      <div ref={mapRef} className="map-container" />
+    <div className="w-full">
+      <div ref={mapRef} className="w-full h-96 rounded-lg shadow-lg" />
       
-      <div className="map-info">
-        <div className="info-item">
-          <span className="info-label">Status:</span>
-          <span className="info-value">{bookingStatus}</span>
+      {routeInfo && (
+        <div className="mt-4 p-4 bg-white rounded-lg shadow-sm border">
+          <h3 className="font-semibold text-gray-900 mb-2">Ruttinformation</h3>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-gray-600">Avstånd:</span>
+              <span className="ml-2 font-medium">{routeInfo.distance}</span>
+            </div>
+            <div>
+              <span className="text-gray-600">Tid:</span>
+              <span className="ml-2 font-medium">{routeInfo.duration}</span>
+            </div>
+          </div>
         </div>
-        {driverLocation && (
-          <div className="info-item">
-            <span className="info-label">Förare:</span>
-            <span className="info-value">På plats</span>
-          </div>
-        )}
-          </div>
-          
-      <style jsx>{`
-        .live-tracking-map {
-          width: 100%;
-          height: 400px;
-          position: relative;
-          border-radius: 12px;
-          overflow: hidden;
-          background: #1a1a1a;
-        }
-
-        .map-container {
-          width: 100%;
-          height: 100%;
-        }
-
-        .map-loading {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          height: 400px;
-          background: #1a1a1a;
-          color: white;
-        }
-
-        .loading-spinner {
-          width: 40px;
-          height: 40px;
-          border: 3px solid rgba(255, 255, 255, 0.3);
-          border-top: 3px solid #3b82f6;
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-          margin-bottom: 1rem;
-        }
-
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-
-        .map-error {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          height: 400px;
-          background: #1a1a1a;
-          color: #ef4444;
-          text-align: center;
-          padding: 2rem;
-        }
-
-        .map-error button {
-          margin-top: 1rem;
-          padding: 0.5rem 1rem;
-          background: #3b82f6;
-          color: white;
-          border: none;
-          border-radius: 6px;
-          cursor: pointer;
-        }
-
-        .map-info {
-          position: absolute;
-          top: 1rem;
-          left: 1rem;
-          background: rgba(0, 0, 0, 0.8);
-          color: white;
-          padding: 1rem;
-          border-radius: 8px;
-          backdrop-filter: blur(10px);
-        }
-
-        .info-item {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 0.5rem;
-        }
-
-        .info-item:last-child {
-          margin-bottom: 0;
-        }
-
-        .info-label {
-          font-weight: 600;
-          margin-right: 1rem;
-        }
-
-        .info-value {
-          color: #10b981;
-        }
-
-        @media (max-width: 768px) {
-          .live-tracking-map {
-            height: 300px;
-          }
-          
-          .map-info {
-            position: relative;
-            top: 0;
-            left: 0;
-            margin: 1rem;
-            background: rgba(0, 0, 0, 0.9);
-          }
-        }
-      `}</style>
+      )}
+      
+      <div className="mt-4 p-4 bg-white rounded-lg shadow-sm border">
+        <h3 className="font-semibold text-gray-900 mb-2">Bokningsstatus</h3>
+        <div className="flex items-center space-x-2">
+          <div className={`w-3 h-3 rounded-full ${
+            bookingStatus === 'confirmed' ? 'bg-green-500' :
+            bookingStatus === 'in_progress' ? 'bg-blue-500' :
+            bookingStatus === 'completed' ? 'bg-gray-500' :
+            'bg-yellow-500'
+          }`}></div>
+          <span className="text-sm text-gray-700 capitalize">
+            {bookingStatus === 'confirmed' ? 'Bekräftad' :
+             bookingStatus === 'in_progress' ? 'Pågår' :
+             bookingStatus === 'completed' ? 'Slutförd' :
+             'Väntar'}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
