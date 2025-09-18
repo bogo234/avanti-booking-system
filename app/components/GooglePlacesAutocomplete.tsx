@@ -78,34 +78,68 @@ export default function GooglePlacesAutocomplete({
       await loadGoogleMaps();
       ensurePlacesLibraryLoaded();
 
-      const service = new window.google!.maps.places.AutocompleteService();
-      const sessionToken = new window.google!.maps.places.AutocompleteSessionToken();
-
-      service.getPlacePredictions(
-        {
-          input,
-          language: 'sv',
-          componentRestrictions: { country: 'se' },
-          sessionToken,
-        },
-        (predictions, status) => {
-          if (status !== window.google!.maps.places.PlacesServiceStatus.OK || !predictions) {
+      // Use modern AutocompleteSuggestion API when available, fallback otherwise
+      const anyMaps: any = window.google!.maps;
+      if (anyMaps.places && anyMaps.places.AutocompleteSuggestion) {
+        const sessionToken = new anyMaps.places.AutocompleteSessionToken();
+        const controller = new AbortController();
+        const suggestionService = new anyMaps.places.AutocompleteSuggestion();
+        suggestionService
+          .getSuggestions({
+            input,
+            locationBias: undefined,
+            language: 'sv',
+            region: 'SE',
+            sessionToken,
+            types: ['geocode', 'establishment'],
+            componentRestrictions: { country: ['se'] },
+            signal: controller.signal,
+          })
+          .then((result: any) => {
+            const suggestions = result.suggestions || [];
+            const mapped: PlacePrediction[] = suggestions.map((s: any) => ({
+              place_id: s.placeId,
+              description: s.formattedText?.text || s.query || '',
+              structured_formatting: {
+                main_text: s.title?.text || s.query || '',
+                secondary_text: s.subtitle?.text || '',
+              },
+            }));
+            setSuggestions(mapped);
+            setError(null);
+          })
+          .catch((e: any) => {
+            console.error('Suggestion error:', e);
             setSuggestions([]);
-            return;
+          });
+      } else {
+        const service = new window.google!.maps.places.AutocompleteService();
+        const sessionToken = new window.google!.maps.places.AutocompleteSessionToken();
+        service.getPlacePredictions(
+          {
+            input,
+            language: 'sv',
+            componentRestrictions: { country: 'se' },
+            sessionToken,
+          },
+          (predictions, status) => {
+            if (status !== window.google!.maps.places.PlacesServiceStatus.OK || !predictions) {
+              setSuggestions([]);
+              return;
+            }
+            const mapped: PlacePrediction[] = predictions.map((p) => ({
+              place_id: p.place_id!,
+              description: p.description!,
+              structured_formatting: {
+                main_text: p.structured_formatting?.main_text || p.description || '',
+                secondary_text: p.structured_formatting?.secondary_text || '',
+              },
+            }));
+            setSuggestions(mapped);
+            setError(null);
           }
-
-          const mapped: PlacePrediction[] = predictions.map((p) => ({
-            place_id: p.place_id!,
-            description: p.description!,
-            structured_formatting: {
-              main_text: p.structured_formatting?.main_text || p.description || '',
-              secondary_text: p.structured_formatting?.secondary_text || '',
-            },
-          }));
-          setSuggestions(mapped);
-          setError(null);
-        }
-      );
+        );
+      }
     } catch (err: any) {
       console.error("Error fetching suggestions:", err);
       setError(err.message || "Kunde inte hämta adressförslag");

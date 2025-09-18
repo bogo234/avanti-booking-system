@@ -43,24 +43,34 @@ export async function loadGoogleMaps(options: LoadOptions = {}): Promise<typeof 
     throw new Error('NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is missing');
   }
 
-  window.__googleMapsLoadPromise = new Promise<typeof google>((resolve, reject) => {
+  window.__googleMapsLoadPromise = new Promise<typeof google>(async (resolve, reject) => {
     try {
       const script = document.createElement('script');
       const params = new URLSearchParams({
         key: apiKey,
-        libraries: libraries.join(','),
         language,
         region,
         v: 'weekly',
+        loading: 'async',
       });
       // Use onload event; no callback clutter in global scope
       script.src = `https://maps.googleapis.com/maps/api/js?${params.toString()}`;
       script.async = true;
       script.defer = true;
 
-      script.onload = () => {
+      script.onload = async () => {
         if (window.google && window.google.maps) {
-          resolve(window.google as typeof google);
+          try {
+            // Ensure requested libraries are loaded using importLibrary
+            if (typeof (window.google.maps as any).importLibrary === 'function') {
+              for (const lib of libraries) {
+                await (window.google.maps as any).importLibrary(lib);
+              }
+            }
+            resolve(window.google as typeof google);
+          } catch (e) {
+            reject(e as Error);
+          }
         } else {
           reject(new Error('Google Maps API loaded but window.google.maps is undefined'));
         }
@@ -82,5 +92,6 @@ export function ensurePlacesLibraryLoaded(): void {
     throw new Error('Google Maps Places library is not loaded');
   }
 }
+
 
 
