@@ -1,7 +1,7 @@
 // Advanced Service Worker for Avanti Booking System
 // Implements comprehensive offline functionality and background sync
 
-const CACHE_NAME = 'avanti-v2.0.0';
+const CACHE_NAME = 'avanti-v2.0.1';
 const OFFLINE_PAGE = '/offline.html';
 const FALLBACK_IMAGE = '/images/fallback.png';
 
@@ -63,12 +63,7 @@ self.addEventListener('install', (event) => {
         // Cache essential assets
         await cache.addAll(PRECACHE_ASSETS);
         
-        // Cache Google Maps API (if available)
-        try {
-          await cache.add('https://maps.googleapis.com/maps/api/js');
-        } catch (error) {
-          console.log('Could not cache Google Maps API');
-        }
+        // Do not precache third-party scripts (e.g., Google Maps). Always fetch fresh.
         
         console.log('Precaching completed');
         
@@ -563,12 +558,21 @@ async function syncOfflineQueue() {
 }
 
 // Helper functions
+function isSameOrigin(url) {
+  try {
+    const u = new URL(url);
+    return u.origin === self.location.origin;
+  } catch (e) {
+    return false;
+  }
+}
+
 function isStaticAsset(url) {
-  return CACHE_STRATEGIES.STATIC.some(pattern => pattern.test(url));
+  return isSameOrigin(url) && CACHE_STRATEGIES.STATIC.some(pattern => pattern.test(url));
 }
 
 function isApiCall(url) {
-  return CACHE_STRATEGIES.API.some(pattern => pattern.test(url));
+  return isSameOrigin(url) && CACHE_STRATEGIES.API.some(pattern => pattern.test(url));
 }
 
 function isPageRequest(request) {
